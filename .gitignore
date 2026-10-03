@@ -30,3 +30,6 @@ deploy/vernemq/vernemq-build/
 
 # 嵌套仓库备份
 frontend/vue-vben-admin/.git-backup-embedded/
+
+# Claude Code 本地配置（暂不开源）
+.claude/
