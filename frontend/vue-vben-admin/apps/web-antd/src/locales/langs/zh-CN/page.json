@@ -1,0 +1,28 @@
+{
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "codeLogin": "验证码登录",
+    "qrcodeLogin": "二维码登录",
+    "forgetPassword": "忘记密码",
+    "profile": "个人中心"
+  },
+  "dashboard": {
+    "title": "概览",
+    "analytics": "分析页",
+    "workspace": "工作台"
+  },
+  "product": {
+    "title": "产品管理",
+    "standard": "标准产品",
+    "custom": "自定义产品",
+    "thingModel": "物模型管理"
+  },
+  "device": {
+    "title": "设备管理",
+    "list": "设备列表",
+    "debug": "在线调试",
+    "alert": "事件告警",
+    "rule": "规则联动"
+  }
+}

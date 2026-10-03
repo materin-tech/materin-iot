@@ -1,0 +1,158 @@
+# 格物 IoT 平台 —— 单机部署 compose（纯 Spring Boot 模块化单体）
+# 镜像统一走 daocloud 镜像源（本机 Docker Hub 不可达）
+name: materin
+
+services:
+  mysql:
+    image: docker.m.daocloud.io/library/mysql:8.4
+    container_name: materin-mysql
+    restart: unless-stopped
+    command:
+      - --default-time-zone=+08:00
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: materin
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../../backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: docker.m.daocloud.io/library/redis:7.4-alpine
+    container_name: materin-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  emqx:
+    image: docker.m.daocloud.io/emqx/emqx:5.8.6
+    container_name: materin-emqx
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "18083:18083"
+    volumes:
+      - emqx-data:/opt/emqx/data
+    environment:
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_ADMIN_PASSWORD:-public}
+    healthcheck:
+      test: ["CMD", "emqx", "ctl", "status"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  iotdb:
+    # Apache IoTDB 时序数据库（官方 standalone 镜像，6667 RPC）
+    image: apache/iotdb:2.0.11-standalone
+    container_name: materin-iotdb
+    restart: unless-stopped
+    ports:
+      - "6667:6667"
+      - "18080:18080"
+    volumes:
+      - iotdb-data:/opt/iotdb/data
+    environment:
+      TZ: Asia/Shanghai
+    healthcheck:
+      test: ["CMD-SHELL", "/iotdb/sbin/start-cli.sh -e 'SHOW DATABASES' >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
+
+  emqx2:
+    # EMQX-2：第三方开发者接入（AK/SK 鉴权待接入，暂 allow_anonymous）
+    image: docker.m.daocloud.io/emqx/emqx:5.8.6
+    container_name: materin-emqx2
+    restart: unless-stopped
+    ports:
+      - "11883:1883"
+      - "18084:18083"
+    volumes:
+      - emqx2-data:/opt/emqx/data
+    healthcheck:
+      test: ["CMD", "emqx", "ctl", "status"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: ../deploy/compose/Dockerfile.backend
+    container_name: materin-backend
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DB: materin
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MATERIN_NETWORK_MQTT_HOST: emqx
+      MATERIN_NETWORK_MQTT_PORT: "1883"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      MATERIN_MQTT_SERVICE_PASSWORD: ${MATERIN_MQTT_SERVICE_PASSWORD:-materin-svc-dev-password}
+      JDK_JAVA_OPTIONS: "-Xms256m -Xmx512m"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
+      iotdb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/api/v1/device/list || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ../../frontend/vue-vben-admin
+      dockerfile: Dockerfile
+    container_name: materin-frontend
+    restart: unless-stopped
+    ports:
+      - "3080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mysql-data:
+  redis-data:
+  emqx-data:
+  emqx2-data:
+  iotdb-data:

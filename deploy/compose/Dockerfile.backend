@@ -1,0 +1,27 @@
+# 多阶段构建：容器内从源码构建格物后端单体
+FROM docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /build
+
+COPY pom.xml .
+COPY common/pom.xml common/
+COPY system/pom.xml system/
+COPY system/system-rbac/pom.xml system/system-rbac/
+COPY component/pom.xml component/
+COPY component/device-component/pom.xml component/device-component/
+COPY component/network-component/pom.xml component/network-component/
+COPY component/network-component/network-mqtt/pom.xml component/network-component/network-mqtt/
+COPY component/network-component/network-coap/pom.xml component/network-component/network-coap/
+# 内联生成阿里云 Maven 镜像配置（settings 文件不在 build context 内）
+RUN mkdir -p /root/.m2 && printf '<?xml version="1.0" encoding="UTF-8"?>\n<settings>\n  <mirrors>\n    <mirror>\n      <id>aliyun</id>\n      <mirrorOf>central</mirrorOf>\n      <url>https://maven.aliyun.com/repository/public</url>\n    </mirror>\n  </mirrors>\n</settings>\n' > /root/.m2/settings.xml
+RUN mvn -B -q dependency:go-offline || true
+
+COPY . .
+RUN mvn -B -DskipTests package
+
+FROM docker.m.daocloud.io/library/eclipse-temurin:21-jre
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /build/server/target/server-0.1.0-SNAPSHOT.jar app.jar
+ENV TZ=Asia/Shanghai
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","/app/app.jar"]

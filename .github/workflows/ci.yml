@@ -1,0 +1,38 @@
+name: build
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: maven }
+      - run: mvn -B -f backend/pom.xml -T 1C verify
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+  # spec §6 结构性独立保障：构建期断言 broker-management 模块零 materin 内部依赖
+  # （spec「破坏独立性即失败」+「模块零依赖断言」由本 job 守护）
+  broker-admin-independence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: maven }
+      - name: broker-management 模块依赖树零 materin 内部模块
+        run: |
+          mvn -B -f backend/pom.xml -pl broker-management dependency:list \
+            -DincludeGroupIds=com.materin -DincludeArtifactIds='!broker-management' \
+            | tee /tmp/deps.txt
+          if grep -E '^\[INFO\].*com.materin:(?!broker-management)' /tmp/deps.txt; then
+            echo "FAIL: broker-management 模块引入了 materin 内部依赖"; exit 1;
+          fi

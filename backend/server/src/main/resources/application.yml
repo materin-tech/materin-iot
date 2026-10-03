@@ -1,0 +1,54 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: materin-server
+  autoconfigure:
+    # knife4j 4.5.0 自动配置面向 springdoc 2.2，Boot 3.4 下排除（doc.html 静态 UI 不受影响）
+    exclude: com.github.xiaoymin.knife4j.spring.configuration.Knife4jAutoConfiguration
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:materin}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+mybatis-flex:
+  global-config:
+    print-banner: false
+  configuration:
+    map-underscore-to-camel-case: true
+
+materin:
+  network:
+    mqtt:
+      host: ${MATERIN_NETWORK_MQTT_HOST:127.0.0.1}
+      port: ${MATERIN_NETWORK_MQTT_PORT:1883}
+      service-username: ${MATERIN_MQTT_SERVICE_USERNAME:materin-svc-consumer}
+      service-password: ${MATERIN_MQTT_SERVICE_PASSWORD:materin-svc-dev-password}
+      online-ttl-seconds: 300
+  security:
+    jwt:
+      secret: ${MATERIN_SECURITY_JWT_SECRET:dev-only-materin-default-secret-change-me-32b!}
+      access-expire-seconds: 7200
+      refresh-expire-seconds: 604800
+  command:
+    timeout-seconds: 10
+    max-concurrent-waits: 100
+    big-payload-threshold: 16384

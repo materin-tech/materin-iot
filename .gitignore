@@ -1,0 +1,32 @@
+# Java / Maven
+backend/**/target/
+*.class
+*.jar
+*.war
+.mvn/wrapper/maven-wrapper.jar
+
+# Node / Vue
+frontend/node_modules/
+frontend/dist/
+broker-management/frontend/node_modules/
+broker-management/frontend/dist/
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
+
+# env / secrets
+.env
+.env.local
+**/application-local.yml
+
+# build outputs
+deploy/vernemq/vernemq-build/
+
+# 嵌套仓库备份
+frontend/vue-vben-admin/.git-backup-embedded/
