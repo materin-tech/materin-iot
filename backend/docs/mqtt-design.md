@@ -77,7 +77,7 @@
 - 下行（EMQX-2→EMQX-1）：规则 `down_cmd_to_emqx1`
   SQL：`SELECT regex_replace(topic, '^open/', '') AS topic, payload FROM "open/materin/+/+/cmd"`，
   sink `sink_to_emqx1`（连接 EMQX-1 用服务账号 materin-svc-emqx2-bridge，过 HTTP 认证）。
-- 配置脚本：`deploy/compose/emqx-integration-setup.sh`（幂等，探测后创建）。
+- 配置脚本：`deploy/compose/emqx-configure.sh`（幂等一键脚本，见配置手册）。
 - **AK/SK 鉴权（已落地）**：EMQX-2 authenticator/authorizer 回调 backend `/api/v1/mqtt/auth|acl`。
   应用体系（system-openapi 模块）：open_app（AK=mk+16hex，SK=32byte hex，仅创建/重置时完整返回一次）、
   open_api（从 /v3/api-docs 同步的接口清单）、open_app_api（应用-接口勾选授权）。
@@ -105,6 +105,6 @@
 
 ## 7. 部署口径
 
-- EMQX 鉴权源配置：`deploy/compose/emqx-setup.sh`（幂等，可重复执行）
+- EMQX 鉴权源配置：`deploy/compose/emqx-configure.sh`（幂等一键脚本，见配置手册）
 - backend 依赖：spring-boot-starter-data-redis（RedisTemplate 自动装配）、hivemq-mqtt-client
 - 注意：EMQX HTTP 认证回调依赖 backend 存活；backend 不可用时 MQTT 连接会被拒绝（fail-closed，安全优先）。
