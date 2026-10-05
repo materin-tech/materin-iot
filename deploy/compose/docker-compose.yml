@@ -1,5 +1,5 @@
 # 格物 IoT 平台 —— 单机部署 compose（纯 Spring Boot 模块化单体）
-# 镜像统一走 daocloud 镜像源（本机 Docker Hub 不可达）
+# 镜像走国内镜像源（本机 Docker Hub 不可达）：统一 daocloud
 name: materin
 
 services:
@@ -71,8 +71,11 @@ services:
       - iotdb-data:/opt/iotdb/data
     environment:
       TZ: Asia/Shanghai
+      # RPC 绑所有网卡（镜像默认 127.0.0.1，跨容器不可达；entrypoint 会把全小写 env 合入 iotdb-system.properties）
+      dn_rpc_address: 0.0.0.0
     healthcheck:
-      test: ["CMD-SHELL", "/iotdb/sbin/start-cli.sh -e 'SHOW DATABASES' >/dev/null 2>&1"]
+      # 健康检查必须走容器 hostname（eth0），确保跨容器可达而非仅 loopback
+      test: ["CMD-SHELL", "/iotdb/sbin/start-cli.sh -h 127.0.0.1 -e 'SHOW DATABASES' >/dev/null 2>&1 && /iotdb/sbin/start-cli.sh -h iotdb -e 'SHOW DATABASES' >/dev/null 2>&1"]
       interval: 15s
       timeout: 10s
       retries: 30
@@ -113,6 +116,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       MATERIN_MQTT_SERVICE_PASSWORD: ${MATERIN_MQTT_SERVICE_PASSWORD:-materin-svc-dev-password}
+      MATERIN_IOTDB_HOST: iotdb
+      MATERIN_IOTDB_PORT: "6667"
       JDK_JAVA_OPTIONS: "-Xms256m -Xmx512m"
     ports:
       - "8080:8080"

@@ -1,5 +1,6 @@
 package com.materin.tech.component.device.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.materin.tech.common.exception.BizException;
 import com.materin.tech.component.device.entity.Device;
 import com.materin.tech.component.device.mapper.DeviceMapper;
@@ -7,7 +8,9 @@ import com.materin.tech.common.redis.RedisKeys;
 import com.materin.tech.common.spi.CommandPublisher;
 import com.materin.tech.common.spi.DeviceCredentialLookup;
 import com.materin.tech.common.spi.ProductLookup;
+import com.materin.tech.common.spi.TelemetrySink;
 import com.mybatisflex.core.query.QueryWrapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /** 设备命令下发：requestId 关联 + Redis 信箱跨实例回传，服务保持无状态。 */
+@Slf4j
 @Service
 public class DeviceCommandService {
 
@@ -26,6 +30,8 @@ public class DeviceCommandService {
     private final ProductLookup productLookup;
     private final StringRedisTemplate redis;
     private final com.materin.tech.common.spi.CommandReplySink replySink;
+    private final ObjectProvider<TelemetrySink> telemetrySink;
+    private final ObjectMapper objectMapper;
     private final long cmdTimeoutSeconds;
     /** 全实例等待槽上限：防高并发下 BLPOP 连接/线程耗尽 */
     private final java.util.concurrent.Semaphore waitSlots;
@@ -36,6 +42,8 @@ public class DeviceCommandService {
                                 ObjectProvider<ProductLookup> productLookup,
                                 StringRedisTemplate redis,
                                 ObjectProvider<com.materin.tech.common.spi.CommandReplySink> replySinkRef,
+                                ObjectProvider<TelemetrySink> telemetrySink,
+                                ObjectMapper objectMapper,
                                 @org.springframework.beans.factory.annotation.Value(
                                         "${materin.command.timeout-seconds:10}") long cmdTimeoutSeconds,
                                 @org.springframework.beans.factory.annotation.Value(
@@ -46,6 +54,8 @@ public class DeviceCommandService {
         this.productLookup = productLookup.getIfAvailable();
         this.redis = redis;
         this.replySink = replySinkRef.getIfAvailable();
+        this.telemetrySink = telemetrySink;
+        this.objectMapper = objectMapper;
         this.cmdTimeoutSeconds = cmdTimeoutSeconds;
         this.waitSlots = new java.util.concurrent.Semaphore(waitSlotsMax);
     }
@@ -67,15 +77,54 @@ public class DeviceCommandService {
 
         byte[] bytes;
         try {
-            bytes = new com.fasterxml.jackson.databind.ObjectMapper()
-                    .writeValueAsBytes(payload);
+            bytes = objectMapper.writeValueAsBytes(payload);
         } catch (Exception e) {
             throw new BizException(500, "命令序列化失败");
         }
         if (!commandPublisher.publish(topic, bytes)) {
             throw new BizException(503, "MQTT 通道不可用");
         }
-        return waitForReply(requestId);
+        long begin = System.currentTimeMillis();
+        String response = null;
+        boolean success = true;
+        try {
+            response = waitForReply(requestId);
+            return response;
+        } catch (RuntimeException e) {
+            success = false;
+            response = e.getMessage();
+            throw e;
+        } finally {
+            recordMethodLog(device, command, requestId, response, success,
+                    System.currentTimeMillis() - begin);
+        }
+    }
+
+    /** 方法调用记录落时序库（闭环后异步语义，失败不影响主流程）。 */
+    private void recordMethodLog(Device device, Map<String, Object> command, String requestId,
+                                 String response, boolean success, long costMs) {
+        TelemetrySink sink = telemetrySink.getIfAvailable();
+        if (sink == null) {
+            return;
+        }
+        try {
+            Map<String, Object> request = new java.util.LinkedHashMap<>(command);
+            request.put("requestId", requestId);
+            sink.saveMethodRecord(device.getId(), firstText(command, "name", "method", "identifier", "id"),
+                    objectMapper.writeValueAsString(request), response, success, costMs);
+        } catch (Exception e) {
+            log.warn("方法调用记录落库失败: deviceId={}, {}", device.getId(), e.getMessage());
+        }
+    }
+
+    private String firstText(Map<String, Object> map, String... keys) {
+        for (String key : keys) {
+            Object value = map.get(key);
+            if (value != null && !String.valueOf(value).isBlank()) {
+                return String.valueOf(value);
+            }
+        }
+        return "unknown";
     }
 
     private String waitForReply(String requestId) {

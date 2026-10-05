@@ -26,7 +26,6 @@ npm-debug.log*
 **/application-local.yml
 
 # build outputs
-deploy/vernemq/vernemq-build/
 
 # 嵌套仓库备份
 frontend/vue-vben-admin/.git-backup-embedded/

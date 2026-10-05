@@ -6,28 +6,27 @@
 
     <parent>
         <groupId>com.materin.tech</groupId>
-        <artifactId>network-component</artifactId>
+        <artifactId>component</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>network-mqtt</artifactId>
+    <artifactId>iotdb-component</artifactId>
     <packaging>jar</packaging>
-    <name>Materin Network MQTT</name>
-    <description>MQTT 协议接入（对接外部 broker / 共享订阅消费遥测）</description>
+    <name>Materin IoTDB Component</name>
+    <description>IoTDB 2.0 树模型实现 timeseries-component 抽象（SessionPool + 建库/懒建时序 + 写入 + 查询/聚合）</description>
 
     <dependencies>
         <dependency>
             <groupId>com.materin.tech</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>timeseries-component</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.hivemq</groupId>
-            <artifactId>hivemq-mqtt-client</artifactId>
-            <version>1.3.5</version>
+            <groupId>org.apache.iotdb</groupId>
+            <artifactId>iotdb-session</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -35,6 +35,7 @@
         <mybatis-flex.version>1.10.9</mybatis-flex.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.8.6</springdoc.version>
+        <iotdb.version>2.0.11</iotdb.version>
     </properties>
 
     <dependencyManagement>
@@ -74,6 +75,23 @@
                 <groupId>com.materin.tech</groupId>
                 <artifactId>network-coap</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>timeseries-component</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>iotdb-component</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- 时序库客户端 -->
+            <dependency>
+                <groupId>org.apache.iotdb</groupId>
+                <artifactId>iotdb-session</artifactId>
+                <version>${iotdb.version}</version>
             </dependency>
 
             <dependency>

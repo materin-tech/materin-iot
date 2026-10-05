@@ -52,3 +52,10 @@ materin:
     timeout-seconds: 10
     max-concurrent-waits: 100
     big-payload-threshold: 16384
+  iotdb:
+    host: ${MATERIN_IOTDB_HOST:127.0.0.1}
+    port: ${MATERIN_IOTDB_PORT:6667}
+    username: ${MATERIN_IOTDB_USERNAME:root}
+    password: ${MATERIN_IOTDB_PASSWORD:root}
+    database: root.materin
+    max-pool-size: 8

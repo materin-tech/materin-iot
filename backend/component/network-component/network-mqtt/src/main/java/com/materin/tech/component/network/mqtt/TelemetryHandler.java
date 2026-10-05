@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.materin.tech.common.mqtt.MqttTopics;
 import com.materin.tech.common.redis.RedisKeys;
 import com.materin.tech.common.spi.DeviceCredentialLookup;
+import com.materin.tech.common.spi.TelemetrySink;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -17,8 +18,9 @@ import java.util.Map;
 
 /**
  * 上行消息处理：
- * - report：刷新在线 TTL、写遥测最新值 HASH、经 SPI 节流更新 DB last_online
- * - event / reply：刷新在线 TTL 并记录日志
+ * - report：刷新在线 TTL、写遥测最新值 HASH、经 SPI 节流更新 DB last_online、落时序库
+ * - event：刷新在线 TTL、落时序库（evt_ 前缀列）
+ * - reply：定向回传指令应答
  */
 @Slf4j
 @Component
@@ -32,16 +34,47 @@ public class TelemetryHandler {
     private final MqttProperties properties;
     private final ObjectProvider<DeviceCredentialLookup> credentialLookup;
     private final ObjectProvider<com.materin.tech.common.spi.CommandReplySink> replySink;
+    private final ObjectProvider<TelemetrySink> telemetrySink;
     private final ObjectMapper objectMapper;
 
     public void handle(String productKey, String deviceKey, String suffix, byte[] payload) {
         touchOnline(deviceKey);
         if (MqttTopics.UP_REPORT.equals(suffix)) {
-            storeTelemetry(deviceKey, payload);
+            handleReport(deviceKey, payload);
         } else if (MqttTopics.UP_EVENT.equals(suffix)) {
-            log.info("设备事件上报: {} event={}", deviceKey, textual(payload));
+            handleEvent(deviceKey, payload);
         } else if (MqttTopics.UP_REPLY.equals(suffix)) {
             deliverCommandReply(payload);
+        }
+    }
+
+    /**
+     * report：Redis 最新值 + 时序库历史（两者均 best-effort，时序库失败不影响上行链路）。
+     */
+    private void handleReport(String deviceKey, byte[] payload) {
+        Map<String, Object> values = parseMap(payload);
+        if (values.isEmpty()) {
+            return;
+        }
+        storeTelemetry(deviceKey, values);
+        TelemetrySink sink = telemetrySink.getIfAvailable();
+        if (sink != null) {
+            sink.saveTelemetry(deviceKey, System.currentTimeMillis(), values);
+        }
+    }
+
+    /**
+     * event：日志 + 时序库（桥接内宽容解析为 evt_ 前缀列）。
+     */
+    private void handleEvent(String deviceKey, byte[] payload) {
+        Map<String, Object> values = parseMap(payload);
+        log.info("设备事件上报: {} event={}", deviceKey, textual(payload));
+        if (values.isEmpty()) {
+            return;
+        }
+        TelemetrySink sink = telemetrySink.getIfAvailable();
+        if (sink != null) {
+            sink.saveEvent(deviceKey, System.currentTimeMillis(), values);
         }
     }
 
@@ -60,18 +93,23 @@ public class TelemetryHandler {
         return lookup.findByKey(deviceKey).map(DeviceCredentialLookup.DeviceCredential::deviceId);
     }
 
-    private void storeTelemetry(String deviceKey, byte[] payload) {
+    private void storeTelemetry(String deviceKey, Map<String, Object> values) {
         try {
-            Map<String, Object> values = objectMapper.readValue(payload, MAP_TYPE);
-            if (values.isEmpty()) {
-                return;
-            }
             String key = RedisKeys.DEVICE_TELEMETRY + deviceKey;
             values.forEach((k, v) -> redis.opsForHash().put(key, k, String.valueOf(v)));
             redis.expire(key, Duration.ofDays(7));
         } catch (Exception e) {
-            log.warn("遥测数据解析失败: deviceKey={}", deviceKey, e);
+            log.warn("遥测最新值写入失败: deviceKey={}, {}", deviceKey, e.getMessage());
         }
+    }
+
+    private Map<String, Object> parseMap(byte[] payload) {
+        try {
+            return objectMapper.readValue(payload, MAP_TYPE);
+        } catch (Exception e) {
+            log.warn("上行报文解析失败: {}", e.getMessage());
+        }
+        return Map.of();
     }
 
     /**

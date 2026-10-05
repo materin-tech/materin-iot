@@ -50,6 +50,10 @@
             <groupId>com.materin.tech</groupId>
             <artifactId>network-coap</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
+            <artifactId>iotdb-component</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.projectlombok</groupId>

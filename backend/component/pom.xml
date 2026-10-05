@@ -16,6 +16,8 @@
     <description>功能组件板块：设备、网络接入等业务能力</description>
 
     <modules>
+        <module>timeseries-component</module>
+        <module>iotdb-component</module>
         <module>device-component</module>
         <module>product-component</module>
         <module>network-component</module>
