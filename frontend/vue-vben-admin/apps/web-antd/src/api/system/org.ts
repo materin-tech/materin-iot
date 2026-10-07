@@ -1,9 +1,9 @@
 import { requestClient } from '#/api/request';
 
-export namespace SystemDeptApi {
-  export interface SystemDept {
+export namespace SystemOrgApi {
+  export interface SystemOrg {
     [key: string]: any;
-    children?: SystemDept[];
+    children?: SystemOrg[];
     id: string;
     name: string;
     remark?: string;
@@ -12,43 +12,43 @@ export namespace SystemDeptApi {
 }
 
 /**
- * 获取部门列表数据
+ * 获取组织列表数据
  */
-async function getDeptList() {
-  return requestClient.get<Array<SystemDeptApi.SystemDept>>(
-    '/system/dept/list',
+async function getOrgList() {
+  return requestClient.get<Array<SystemOrgApi.SystemOrg>>(
+    '/system/org/list',
   );
 }
 
 /**
  * 创建部门
- * @param data 部门数据
+ * @param data 组织数据
  */
-async function createDept(
-  data: Omit<SystemDeptApi.SystemDept, 'children' | 'id'>,
+async function createOrg(
+  data: Omit<SystemOrgApi.SystemOrg, 'children' | 'id'>,
 ) {
-  return requestClient.post('/system/dept', data);
+  return requestClient.post('/system/org', data);
 }
 
 /**
  * 更新部门
  *
  * @param id 部门 ID
- * @param data 部门数据
+ * @param data 组织数据
  */
-async function updateDept(
+async function updateOrg(
   id: string,
-  data: Omit<SystemDeptApi.SystemDept, 'children' | 'id'>,
+  data: Omit<SystemOrgApi.SystemOrg, 'children' | 'id'>,
 ) {
-  return requestClient.put(`/system/dept/${id}`, data);
+  return requestClient.put(`/system/org/${id}`, data);
 }
 
 /**
- * 删除部门
+ * 删除组织
  * @param id 部门 ID
  */
-async function deleteDept(id: string) {
-  return requestClient.delete(`/system/dept/${id}`);
+async function deleteOrg(id: string) {
+  return requestClient.delete(`/system/org/${id}`);
 }
 
-export { createDept, deleteDept, getDeptList, updateDept };
+export { createOrg, deleteOrg, getOrgList, updateOrg };

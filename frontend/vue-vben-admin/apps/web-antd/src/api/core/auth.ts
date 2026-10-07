@@ -10,6 +10,8 @@ export namespace AuthApi {
   /** 登录接口返回值 */
   export interface LoginResult {
     accessToken: string;
+    /** 等保三级：密码状态（EXPIRING 即将到期 / EXPIRED 已过期） */
+    passwordStatus?: 'EXPIRED' | 'EXPIRING' | 'NORMAL';
   }
 
   export interface RefreshTokenResult {

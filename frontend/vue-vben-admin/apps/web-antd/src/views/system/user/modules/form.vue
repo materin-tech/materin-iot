@@ -5,7 +5,8 @@ import type { Recordable } from '@vben/types';
 
 import type { SystemUserApi } from '#/api/system/user';
 
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, reactive, ref } from 'vue';
+
 
 import { Tree, useVbenDrawer } from '@vben/common-ui';
 
@@ -22,10 +23,15 @@ const emits = defineEmits(['success']);
 
 const formData = ref<SystemUserApi.SystemUser>();
 
-const [Form, formApi] = useVbenForm({
-  schema: useFormSchema(),
-  showDefaultActions: false,
-});
+const isEdit = computed(() => !!formData.value?.id);
+
+const [Form, formApi] = useVbenForm(
+  reactive({
+    // 创建时才显示密码字段（编辑时后端把空密码视为不修改）
+    schema: computed(() => useFormSchema(isEdit.value)),
+    showDefaultActions: false,
+  }),
+);
 
 const permissions = ref<DataNode[]>([]);
 const loadingPermissions = ref(false);

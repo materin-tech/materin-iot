@@ -8,10 +8,11 @@ import { h } from 'vue';
 
 import { Tag } from 'ant-design-vue';
 
-import { getDeptList } from '#/api';
+import { getOrgList } from '#/api';
 import { $t } from '#/locales';
+import { z } from '#/adapter/form';
 
-export function useFormSchema(): VbenFormSchema[] {
+export function useFormSchema(isEdit = false): VbenFormSchema[] {
   return [
     {
       component: 'Input',
@@ -20,18 +21,65 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
     },
     {
+      component: 'VbenInputPassword',
+      componentProps: {
+        passwordStrength: true,
+        placeholder: $t('system.user.passwordTip'),
+      },
+      fieldName: 'password',
+      label: $t('system.user.password'),
+      // 创建时必填且校验复杂度；编辑时留空表示不修改密码
+      rules: isEdit
+        ? z.string().optional().or(z.literal(''))
+        : z
+            .string()
+            .min(1, { message: $t('system.user.passwordTip') })
+            .regex(/[A-Z]/, { message: $t('system.user.passwordTip') })
+            .regex(/[a-z]/, { message: $t('system.user.passwordTip') })
+            .regex(/\d/, { message: $t('system.user.passwordTip') })
+            .regex(/[^A-Za-z0-9]/, {
+              message: $t('system.user.passwordTip'),
+            }),
+    },
+    {
       component: 'ApiTreeSelect',
       componentProps: {
         allowClear: true,
-        api: getDeptList,
+        api: getOrgList,
         class: 'w-full',
         labelField: 'name',
         valueField: 'id',
         childrenField: 'children',
       },
-      fieldName: 'deptId',
-      label: $t('system.user.dept'),
+      fieldName: 'orgId',
+      label: $t('system.user.org'),
       rules: 'required',
+    },
+    {
+      component: 'Input',
+      componentProps: { placeholder: '13xxxxxxxxx' },
+      fieldName: 'phone',
+      label: $t('system.user.phone'),
+      rules: z.string().regex(/^1[3-9]\d{9}$/, { message: $t('system.user.phone') }).optional().or(z.literal('')),
+    },
+    {
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: [
+          { label: $t('system.user.idTypeCard'), value: 'ID_CARD' },
+          { label: $t('system.user.idTypePassport'), value: 'PASSPORT' },
+          { label: $t('system.user.idTypeOther'), value: 'OTHER' },
+        ],
+      },
+      fieldName: 'idType',
+      label: $t('system.user.idType'),
+    },
+    {
+      component: 'Input',
+      fieldName: 'idNo',
+      label: $t('system.user.idNo'),
+      rules: z.string().optional(),
     },
     {
       component: 'RadioGroup',
@@ -99,7 +147,11 @@ export function useDescriptionItems(
   return [
     { label: $t('system.user.name'), content: row?.name },
     { label: $t('system.user.id'), content: row?.id },
-    { label: $t('system.user.dept'), content: row?.deptId },
+    { label: $t('system.user.org'), content: row?.orgId },
+    { label: $t('system.user.phone'), content: row?.phone },
+    { label: $t('system.user.idType'), content: row?.idType },
+    { label: $t('system.user.idNo'), content: row?.idNo },
+    { label: $t('system.user.passwordUpdateTime'), content: row?.passwordUpdateTime },
     {
       label: $t('system.user.status'),
       content: () =>
@@ -132,6 +184,11 @@ export function useColumns<T = SystemUserApi.SystemUser>(
       field: 'id',
       title: $t('system.user.id'),
       width: 200,
+    },
+    {
+      field: 'phone',
+      title: $t('system.user.phone'),
+      width: 140,
     },
     {
       cellRender: {

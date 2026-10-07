@@ -3,7 +3,7 @@ import type {
   OnActionClickParams,
   VxeTableGridOptions,
 } from '#/adapter/vxe-table';
-import type { SystemDeptApi } from '#/api/system/dept';
+import type { SystemOrgApi } from '#/api/system/org';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 import { Plus } from '@vben/icons';
@@ -11,7 +11,7 @@ import { Plus } from '@vben/icons';
 import { Button, message } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { deleteDept, getDeptList } from '#/api/system/dept';
+import { deleteOrg, getOrgList } from '#/api/system/org';
 import { $t } from '#/locales';
 
 import { useColumns } from './data';
@@ -23,39 +23,39 @@ const [FormModal, formModalApi] = useVbenModal({
 });
 
 /**
- * 编辑部门
+ * 编辑组织
  * @param row
  */
-function onEdit(row: SystemDeptApi.SystemDept) {
+function onEdit(row: SystemOrgApi.SystemOrg) {
   formModalApi.setData(row).open();
 }
 
 /**
- * 添加下级部门
+ * 添加下级组织
  * @param row
  */
-function onAppend(row: SystemDeptApi.SystemDept) {
+function onAppend(row: SystemOrgApi.SystemOrg) {
   formModalApi.setData({ pid: row.id }).open();
 }
 
 /**
- * 创建新部门
+ * 创建新组织
  */
 function onCreate() {
   formModalApi.setData(null).open();
 }
 
 /**
- * 删除部门
+ * 删除组织
  * @param row
  */
-function onDelete(row: SystemDeptApi.SystemDept) {
+function onDelete(row: SystemOrgApi.SystemOrg) {
   const hideLoading = message.loading({
     content: $t('ui.actionMessage.deleting', [row.name]),
     duration: 0,
     key: 'action_process_msg',
   });
-  deleteDept(row.id)
+  deleteOrg(row.id)
     .then(() => {
       message.success({
         content: $t('ui.actionMessage.deleteSuccess', [row.name]),
@@ -74,7 +74,7 @@ function onDelete(row: SystemDeptApi.SystemDept) {
 function onActionClick({
   code,
   row,
-}: OnActionClickParams<SystemDeptApi.SystemDept>) {
+}: OnActionClickParams<SystemOrgApi.SystemOrg>) {
   switch (code) {
     case 'append': {
       onAppend(row);
@@ -103,7 +103,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async (_params) => {
-          return await getDeptList();
+          return await getOrgList();
         },
       },
     },
@@ -131,11 +131,11 @@ function refreshGrid() {
 <template>
   <Page auto-content-height>
     <FormModal @success="refreshGrid" />
-    <Grid table-title="部门列表">
+    <Grid table-title="组织列表">
       <template #toolbar-tools>
         <Button type="primary" @click="onCreate">
           <Plus class="size-5" />
-          {{ $t('ui.actionTitle.create', [$t('system.dept.name')]) }}
+          {{ $t('ui.actionTitle.create', [$t('system.org.name')]) }}
         </Button>
       </template>
     </Grid>

@@ -6,22 +6,25 @@
     "name": "User",
     "userName": "User Name",
     "id": "User ID",
-    "dept": "Department",
     "status": "Status",
     "remark": "Remark",
     "createTime": "Creation Time",
     "operation": "Operation",
-    "placeholder": "Search Department..."
-  },
-  "dept": {
-    "name": "Department",
-    "title": "Department Management",
-    "deptName": "Department Name",
-    "status": "Status",
-    "createTime": "Create Time",
-    "remark": "Remark",
-    "operation": "Operation",
-    "parentDept": "Parent Department"
+    "placeholder": "Search organization...",
+    "org": "Organization",
+    "phone": "Phone Number",
+    "idType": "ID Type",
+    "idNo": "ID Number",
+    "passwordUpdateTime": "Password Last Changed",
+    "password": "Password",
+    "passwordTip": "At least 8 chars with uppercase, lowercase, digit and special character",
+    "resetPassword": "Reset Password",
+    "newPassword": "New Password",
+    "unlock": "Unlock",
+    "unlockConfirm": "Unlock this account?",
+    "idTypeCard": "ID Card",
+    "idTypePassport": "Passport",
+    "idTypeOther": "Other"
   },
   "menu": {
     "title": "Menu Management",
@@ -74,5 +77,35 @@
     "operation": "Operation",
     "permissions": "Permissions",
     "setPermissions": "Permissions"
+  },
+  "org": {
+    "name": "Organization",
+    "title": "Organization Management",
+    "deptName": "Department Name",
+    "status": "Status",
+    "createTime": "Create Time",
+    "remark": "Remark",
+    "operation": "Operation",
+    "parentDept": "Parent Department",
+    "list": "Organization List",
+    "orgName": "Organization Name",
+    "parentOrg": "Parent Organization"
+  },
+  "security": {
+    "title": "Security Settings",
+    "passwordPolicy": "Password Policy",
+    "lockoutPolicy": "Login Lockout Policy",
+    "passwordMinLength": "Min Password Length",
+    "requireUppercase": "Require uppercase letter",
+    "requireLowercase": "Require lowercase letter",
+    "requireDigit": "Require digit",
+    "requireSpecial": "Require special character",
+    "passwordExpireDays": "Password expiry (days)",
+    "passwordRemindDays": "Reminder days before expiry",
+    "lockoutMaxFails": "Max failed attempts",
+    "lockoutDurationMinutes": "Lockout duration (minutes)",
+    "save": "Save",
+    "saved": "Saved",
+    "loadFailed": "Load failed"
   }
 }

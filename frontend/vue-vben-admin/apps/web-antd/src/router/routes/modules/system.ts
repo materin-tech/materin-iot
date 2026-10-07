@@ -40,13 +40,22 @@ const routes: RouteRecordRaw[] = [
         component: () => import('#/views/system/menu/list.vue'),
       },
       {
-        path: 'dept',
-        name: 'SystemDept',
+        path: 'org',
+        name: 'SystemOrg',
         meta: {
           icon: 'charm:organisation',
-          title: $t('system.dept.title'),
+          title: $t('system.org.title'),
         },
-        component: () => import('#/views/system/dept/list.vue'),
+        component: () => import('#/views/system/org/list.vue'),
+      },
+      {
+        path: 'security',
+        name: 'SystemSecurity',
+        meta: {
+          icon: 'ion:shield-checkmark-outline',
+          title: $t('system.security.title'),
+        },
+        component: () => import('#/views/system/security/index.vue'),
       },
     ],
   },

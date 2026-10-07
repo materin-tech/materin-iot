@@ -37,6 +37,8 @@ export default defineEventHandler(async (event) => {
 
   return useResponseSuccess({
     ...findUser,
+    // 等保三级：密码到期提醒（EXPIRED=已过期需修改 / EXPIRING=临近到期 / NORMAL）
+    passwordStatus: findUser.passwordUpdateTime ? 'NORMAL' : 'EXPIRED',
     accessToken,
   });
 });

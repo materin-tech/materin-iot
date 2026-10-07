@@ -20,6 +20,7 @@ export const MOCK_USERS: UserInfo[] = [
     roles: ['super'],
     username: 'materin',
     homePath: '/dashboard/workspace',
+    passwordUpdateTime: new Date().toISOString(),
   },
   {
     id: 1,
@@ -36,18 +37,19 @@ export const MOCK_USERS: UserInfo[] = [
     roles: ['user'],
     username: 'jack',
     homePath: '/dashboard/analytics',
+    passwordUpdateTime: new Date().toISOString(),
   },
 ];
 
 export const MOCK_CODES = [
   // super
   {
-    codes: ['AC_100100', 'AC_100110', 'AC_100120', 'AC_100010'],
+    codes: ['AC_100100', 'AC_100110', 'AC_100120', 'AC_100010', 'AC_100130'],
     username: 'materin',
   },
   {
     // admin
-    codes: ['AC_100010', 'AC_100020', 'AC_100030'],
+    codes: ['AC_100010', 'AC_100020', 'AC_100030', 'AC_100130'],
     username: 'admin',
   },
   {
@@ -297,45 +299,60 @@ export const MOCK_MENU_LIST = [
       {
         id: 202,
         pid: 2,
-        path: '/system/dept',
-        name: 'SystemDept',
+        path: '/system/org',
+        name: 'SystemOrg',
         status: 1,
         type: 'menu',
-        authCode: 'System:Dept:List',
+        authCode: 'System:Org:List',
         meta: {
           icon: 'carbon:container-services',
-          title: 'system.dept.title',
+          title: 'system.org.title',
         },
-        component: '/system/dept/list',
+        component: '/system/org/list',
         children: [
           {
             id: 20_401,
             pid: 202,
-            name: 'SystemDeptCreate',
+            name: 'SystemOrgCreate',
             status: 1,
             type: 'button',
-            authCode: 'System:Dept:Create',
+            authCode: 'System:Org:Create',
             meta: { title: 'common.create' },
           },
           {
             id: 20_402,
             pid: 202,
-            name: 'SystemDeptEdit',
+            name: 'SystemOrgEdit',
             status: 1,
             type: 'button',
-            authCode: 'System:Dept:Edit',
+            authCode: 'System:Org:Edit',
             meta: { title: 'common.edit' },
           },
           {
             id: 20_403,
             pid: 202,
-            name: 'SystemDeptDelete',
+            name: 'SystemOrgMenuDelete',
             status: 1,
             type: 'button',
-            authCode: 'System:Dept:Delete',
+            authCode: 'System:Org:Delete',
             meta: { title: 'common.delete' },
           },
         ],
+      },
+      {
+        id: 203,
+        pid: 2,
+        path: '/system/security',
+        name: 'SystemSecurity',
+        status:1,
+        type: 'menu',
+        authCode: 'AC_100130',
+        meta: {
+          icon: 'ion:shield-checkmark-outline',
+          title: 'system.security.title',
+i18n: true,
+        },
+        component: '/system/security/index',
       },
     ],
   },

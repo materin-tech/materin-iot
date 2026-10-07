@@ -7,7 +7,7 @@ import { LOGIN_PATH } from '@vben/constants';
 import { preferences } from '@vben/preferences';
 import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 
-import { notification } from 'ant-design-vue';
+import { Modal, notification } from 'ant-design-vue';
 import { defineStore } from 'pinia';
 
 import { getAccessCodesApi, getUserInfoApi, loginApi, logoutApi } from '#/api';
@@ -33,7 +33,9 @@ export const useAuthStore = defineStore('auth', () => {
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
-      const { accessToken } = await loginApi(params);
+      // 保留完整响应，登录后需要根据 passwordStatus 判断是否提醒用户修改密码
+      const loginResult = await loginApi(params);
+      const { accessToken } = loginResult;
 
       // 如果成功获取到 accessToken
       if (accessToken) {
@@ -58,6 +60,24 @@ export const useAuthStore = defineStore('auth', () => {
             : await router.push(
                 userInfo.homePath || preferences.app.defaultHomePath,
               );
+        }
+
+        // 等保三级：密码即将到期/已过期时，在跳转完成后提醒用户尽快修改密码
+        if (
+          loginResult.passwordStatus === 'EXPIRED' ||
+          loginResult.passwordStatus === 'EXPIRING'
+        ) {
+          Modal.warning({
+            content:
+              loginResult.passwordStatus === 'EXPIRED'
+                ? '登录密码已过期，请尽快修改密码。'
+                : '登录密码即将到期，请尽快修改密码。',
+            okText: '去修改密码',
+            onOk: () => {
+              router.push('/profile');
+            },
+            title: '密码到期提醒',
+          });
         }
 
         if (userInfo?.realName) {

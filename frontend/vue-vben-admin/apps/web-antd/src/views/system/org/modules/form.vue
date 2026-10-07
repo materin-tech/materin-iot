@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { SystemDeptApi } from '#/api/system/dept';
+import type { SystemOrgApi } from '#/api/system/org';
 
 import { computed, ref } from 'vue';
 
@@ -8,22 +8,22 @@ import { useVbenModal } from '@vben/common-ui';
 import { Button } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
-import { createDept, updateDept } from '#/api/system/dept';
+import { createOrg, updateOrg } from '#/api/system/org';
 import { $t } from '#/locales';
 
 import { useSchema } from '../data';
 
 const emit = defineEmits(['success']);
-const formData = ref<SystemDeptApi.SystemDept>();
+const formData = ref<SystemOrgApi.SystemOrg>();
 type DeptModalData =
   | null
-  | SystemDeptApi.SystemDept
-  | { pid: SystemDeptApi.SystemDept['pid'] };
+  | SystemOrgApi.SystemOrg
+  | { pid: SystemOrgApi.SystemOrg['pid'] };
 
 const getTitle = computed(() => {
   return formData.value?.id
-    ? $t('ui.actionTitle.edit', [$t('system.dept.name')])
-    : $t('ui.actionTitle.create', [$t('system.dept.name')]);
+    ? $t('ui.actionTitle.edit', [$t('system.org.name')])
+    : $t('ui.actionTitle.create', [$t('system.org.name')]);
 });
 
 const [Form, formApi] = useVbenForm({
@@ -45,8 +45,8 @@ const [Modal, modalApi] = useVbenModal<DeptModalData>({
       const data = await formApi.getValues();
       try {
         await (formData.value?.id
-          ? updateDept(formData.value.id, data)
-          : createDept(data));
+          ? updateOrg(formData.value.id, data)
+          : createOrg(data));
         modalApi.close();
         emit('success');
       } finally {

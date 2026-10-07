@@ -4,7 +4,7 @@ import type { Dayjs } from 'dayjs';
 import type { Recordable } from '@vben/types';
 
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { SystemDeptApi, SystemUserApi } from '#/api';
+import type { SystemOrgApi, SystemUserApi } from '#/api';
 
 import { onMounted, ref, watch } from 'vue';
 
@@ -16,7 +16,14 @@ import { Button, Card, Input, message, Modal } from 'ant-design-vue';
 const InputSearch = Input.Search;
 
 import { useVbenVxeGrid, VbenTableAction } from '#/adapter/vxe-table';
-import { deleteUser, getDeptList, getUserList, updateUser } from '#/api';
+import {
+  deleteUser,
+  getOrgList,
+  getUserList,
+  resetUserPassword,
+  unlockUser,
+  updateUser,
+} from '#/api';
 import { $t } from '#/locales';
 import { createDateRangeCodec } from '#/utils/date-range-codec';
 
@@ -36,9 +43,9 @@ const userSearchCodec = createDateRangeCodec<UserSearchFormValues>()({
 
 type UserSearchSubmitValues = ReturnType<typeof userSearchCodec.encode>;
 
-const deptList = ref<SystemDeptApi.SystemDept[]>([]);
+const orgList = ref<SystemOrgApi.SystemOrg[]>([]);
 const inputSearchValue = ref('');
-const selectedDeptId = ref<string>('');
+const selectedOrgId = ref<string>('');
 
 const [FormDrawer, formDrawerApi] = useVbenDrawer({
   connectedComponent: Form,
@@ -67,7 +74,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
             page: page.currentPage,
             pageSize: page.pageSize,
             ...formValues,
-            deptId: selectedDeptId.value,
+            orgId: selectedOrgId.value,
           });
         },
       },
@@ -159,6 +166,80 @@ function onDelete(row: SystemUserApi.SystemUser) {
     });
 }
 
+/** 生成密码的总长度（等保三级要求至少 8 位，这里取 12 位增强强度） */
+const PASSWORD_LENGTH = 12;
+
+/**
+ * 基于安全随机源在 [0, max) 范围内取随机整数（拒绝采样，避免取模偏差）
+ */
+function randomInt(max: number): number {
+  const range = 256 - (256 % max);
+  const buffer = new Uint8Array(1);
+  let value = 0;
+  do {
+    crypto.getRandomValues(buffer);
+    value = buffer[0]!;
+  } while (value >= range);
+  return value % max;
+}
+
+/**
+ * Fisher-Yates 洗牌，返回新数组（不改变原数组）
+ */
+function shuffle<T>(list: T[]): T[] {
+  const result = [...list];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [result[i], result[j]] = [result[j]!, result[i]!];
+  }
+  return result;
+}
+
+/** 等保三级：生成符合复杂度要求的随机密码（大写+小写+数字+特殊字符） */
+function generateComplexPassword(): string {
+  const sets = [
+    'ABCDEFGHJKLMNPQRSTUVWXYZ',
+    'abcdefghijkmnpqrstuvwxyz',
+    '23456789',
+    '!@#$%^&*',
+  ];
+  const all = sets.join('');
+  // 每组字符集先各随机取 1 位，保证四类字符齐备
+  const picks = sets.map((set) => set[randomInt(set.length)]!);
+  // 剩余位数从全集中随机补齐
+  while (picks.length < PASSWORD_LENGTH) {
+    picks.push(all[randomInt(all.length)]!);
+  }
+  // 打乱顺序，避免四类字符固定出现在开头
+  return shuffle(picks).join('');
+}
+
+/** 重置密码：生成新的符合复杂度的随机密码，确认后提交 */
+function onResetPassword(row: SystemUserApi.SystemUser) {
+  const newPassword = generateComplexPassword();
+  Modal.confirm({
+    content: `账号 ${row.name} 的新密码为：${newPassword}，请妥善保管。`,
+    onOk: async () => {
+      await resetUserPassword(row.id, newPassword);
+      message.success($t('system.user.resetPassword') + '成功');
+      onRefresh();
+    },
+    title: $t('system.user.resetPassword'),
+  });
+}
+
+/** 解锁被锁定的账号 */
+function onUnlock(row: SystemUserApi.SystemUser) {
+  Modal.confirm({
+    content: $t('system.user.unlockConfirm'),
+    onOk: async () => {
+      await unlockUser(row.id);
+      message.success($t('system.user.unlock') + '成功');
+    },
+    title: $t('system.user.unlock'),
+  });
+}
+
 function onRefresh() {
   gridApi.query();
 }
@@ -167,37 +248,37 @@ function onCreate() {
   formDrawerApi.setData(null).open();
 }
 
-async function loadDeptList() {
+async function loadOrgList() {
   try {
-    const res = await getDeptList();
-    deptList.value = res;
+    const res = await getOrgList();
+    orgList.value = res;
   } catch (error) {
     console.error('Failed to load department list:', error);
   }
 }
 
-function selectDept(v: string) {
-  selectedDeptId.value = v;
+function selectOrg(v: string) {
+  selectedOrgId.value = v;
   gridApi.query();
 }
 
-function searchDept(value: string) {
+function searchOrg(value: string) {
   if (!value) {
-    loadDeptList();
+    loadOrgList();
     return;
   }
-  const filtered = deptList.value.filter((dept) =>
-    dept.name.toLowerCase().includes(value.toLowerCase()),
+  const filtered = orgList.value.filter((org) =>
+    org.name.toLowerCase().includes(value.toLowerCase()),
   );
-  deptList.value = filtered;
+  orgList.value = filtered;
 }
 
 onMounted(() => {
-  loadDeptList();
+  loadOrgList();
 });
 
 watch(inputSearchValue, (value) => {
-  searchDept(value);
+  searchOrg(value);
 });
 </script>
 <template>
@@ -213,9 +294,9 @@ watch(inputSearchValue, (value) => {
         <Tree
           label-field="name"
           value-field="id"
-          :tree-data="deptList"
+          :tree-data="orgList"
           :default-expanded-level="2"
-          @select="selectDept"
+          @select="selectOrg"
         />
       </Card>
 
@@ -242,6 +323,19 @@ watch(inputSearchValue, (value) => {
                 },
               ]"
               :dropdown-actions="[
+                {
+                  text: $t('system.user.resetPassword'),
+                  icon: 'lucide:key-round',
+                  onClick: () => onResetPassword(row),
+                },
+                {
+                  text: $t('system.user.unlock'),
+                  icon: 'lucide:unlock',
+                  popConfirm: {
+                    title: $t('system.user.unlockConfirm'),
+                    confirm: () => onUnlock(row),
+                  },
+                },
                 {
                   text: $t('common.delete'),
                   icon: 'lucide:trash-2',

@@ -30,8 +30,14 @@ function generateUsers(count: number): SystemRecord[] {
       createTime: formatterCN.format(
         faker.date.between({ from: '2022-01-01', to: '2025-01-01' }),
       ),
-      deptId: faker.string.uuid(),
+      orgId: faker.string.uuid(),
       remark: faker.lorem.sentence(),
+      phone: `13${faker.string.numeric(9)}`,
+      idType: 'ID_CARD',
+      idNo: `${faker.string.numeric(3, { allowLeadingZeros: true })}${'*'.repeat(11)}${faker.string.numeric(4)}`,
+      passwordUpdateTime: formatterCN.format(
+        faker.date.between({ from: '2025-01-01', to: '2025-10-01' }),
+      ),
     });
   }
   return dataList;
@@ -58,6 +64,19 @@ function generateRoles(count: number): SystemRecord[] {
 export const systemUserStore = { list: generateUsers(100) };
 
 export const systemRoleStore = { list: generateRoles(100) };
+
+/** 等保三级安全参数（sys_config 语义）：mock 内存默认值。 */
+export const systemSecurityConfigStore = {
+  passwordMinLength: 8,
+  passwordRequireUppercase: true,
+  passwordRequireLowercase: true,
+  passwordRequireDigit: true,
+  passwordRequireSpecial: true,
+  passwordExpireDays: 90,
+  passwordRemindDays: 7,
+  lockoutMaxFails: 5,
+  lockoutDurationMinutes: 10,
+};
 
 /** 菜单为树形结构，深拷贝一份用于可变 CRUD */
 export const systemMenuStore = {
