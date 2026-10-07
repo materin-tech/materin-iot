@@ -69,6 +69,9 @@ materin:
     access-key: ${MATERIN_STORAGE_ACCESS_KEY:minioadmin}
     secret-key: ${MATERIN_STORAGE_SECRET_KEY:minioadmin}
     bucket: ${MATERIN_STORAGE_BUCKET:materin}
+    local:
+      base-path: ${MATERIN_STORAGE_LOCAL_PATH:./data/storage}
+      public-url: ${MATERIN_STORAGE_LOCAL_PUBLIC_URL:}
   ota:
     enabled: ${MATERIN_OTA_ENABLED:true}
   security:

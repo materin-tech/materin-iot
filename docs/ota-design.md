@@ -77,10 +77,11 @@ storage-component（存储中间件抽象）   network-mqtt（MQTT 通道）
 
 | 配置 | 说明 |
 |---|---|
-| type | MINIO（后续 OBS / ALIYUN） |
+| type | MINIO / OBS / ALIYUN / LOCAL / NONE（互斥，多实现共存启动即失败） |
 | endpoint | 平台内部读写地址 |
 | external-endpoint | 预签名 URL 的 host（S3 签名绑定 host，必须配设备可达地址，如宿主局域网 IP） |
 | access-key / secret-key / bucket | 凭证与默认桶（首用自动建桶） |
+| local.base-path / local.public-url | LOCAL 模式：落盘根目录 / 设备可达的平台地址（预签名前缀） |
 
 ## 5. 前端
 

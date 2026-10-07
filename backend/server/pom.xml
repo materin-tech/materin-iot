@@ -64,6 +64,18 @@
         </dependency>
         <dependency>
             <groupId>com.materin.tech</groupId>
+            <artifactId>storage-obs</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
+            <artifactId>storage-oss</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
+            <artifactId>storage-local</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
             <artifactId>ota-component</artifactId>
         </dependency>
         <dependency>

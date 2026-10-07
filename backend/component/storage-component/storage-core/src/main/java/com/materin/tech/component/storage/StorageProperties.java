@@ -9,8 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class StorageProperties {
 
     public enum Type {
-        NONE, MINIO
-        // 后续：OBS、ALIYUN
+        NONE, MINIO, OBS, ALIYUN, LOCAL
     }
 
     /** 是否启用存储中间件 */
@@ -33,4 +32,15 @@ public class StorageProperties {
 
     /** 默认桶（OTA 固件等） */
     private String bucket = "materin";
+
+    /** 本地文件系统实现（type=LOCAL）专属配置 */
+    private Local local = new Local();
+
+    @Data
+    public static class Local {
+        /** 对象落盘根目录 */
+        private String basePath = "./data/storage";
+        /** 设备可达的平台公网地址（预签名 URL 前缀），如 http://192.168.1.10:8080 */
+        private String publicUrl;
+    }
 }

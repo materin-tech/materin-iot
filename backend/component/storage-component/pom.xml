@@ -18,5 +18,8 @@
     <modules>
         <module>storage-core</module>
         <module>storage-minio</module>
+        <module>storage-obs</module>
+        <module>storage-oss</module>
+        <module>storage-local</module>
     </modules>
 </project>

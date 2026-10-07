@@ -115,6 +115,21 @@
             </dependency>
             <dependency>
                 <groupId>com.materin.tech</groupId>
+                <artifactId>storage-obs</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>storage-oss</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>storage-local</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
                 <artifactId>ota-component</artifactId>
                 <version>${project.version}</version>
             </dependency>

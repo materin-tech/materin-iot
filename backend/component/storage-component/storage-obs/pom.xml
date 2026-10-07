@@ -10,29 +10,34 @@
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>storage-core</artifactId>
+    <artifactId>storage-obs</artifactId>
     <packaging>jar</packaging>
-    <name>Materin Storage Core</name>
-    <description>对象存储统一抽象：StorageClient 接口 + 配置 + 装配（协议/厂商无关）</description>
+    <name>Materin Storage OBS</name>
+    <description>StorageClient 的华为 OBS 实现（esdk-obs-java）</description>
 
     <dependencies>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
+            <artifactId>storage-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot</artifactId>
+            <groupId>com.huaweicloud</groupId>
+            <artifactId>esdk-obs-java</artifactId>
+            <version>3.25.10</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
