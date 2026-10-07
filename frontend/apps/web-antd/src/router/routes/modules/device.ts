@@ -48,6 +48,15 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('#/views/device/rule.vue'),
       },
+      {
+        path: 'monitor',
+        name: 'DeviceMonitor',
+        meta: {
+          icon: 'lucide:activity',
+          title: $t('page.device.monitor'),
+        },
+        component: () => import('#/views/device/monitor.vue'),
+      },
     ],
   },
 ];

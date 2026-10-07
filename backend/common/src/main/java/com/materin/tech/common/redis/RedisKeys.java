@@ -21,6 +21,9 @@ public final class RedisKeys {
     /** 遥测最新值 HASH */
     public static final String DEVICE_TELEMETRY = "materin:device:telemetry:";
 
+    /** 设备 DFX 健康指标最新值 HASH */
+    public static final String DEVICE_DFX = "materin:device:dfx:";
+
     /** 设备资料缓存 */
     public static final String DEVICE_INFO = "materin:device:info:";
 

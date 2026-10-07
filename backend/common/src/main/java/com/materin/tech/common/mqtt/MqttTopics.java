@@ -19,6 +19,8 @@ public final class MqttTopics {
     public static final String UP_EVENT = "event";
     /** 上行：指令响应 */
     public static final String UP_REPLY = "reply";
+    /** 上行：DFX 健康指标上报（docs/dfx-monitoring-design.md §4.1） */
+    public static final String UP_DFX = "dfx";
     /** 下行：指令下发 */
     public static final String DOWN_CMD = "cmd";
 
@@ -28,13 +30,16 @@ public final class MqttTopics {
     public static final String WILDCARD_EVENT = "materin/+/+/event";
     /** 平台通配（仅服务账号）：指令响应 */
     public static final String WILDCARD_REPLY = "materin/+/+/reply";
+    /** 平台通配（仅服务账号）：DFX 健康指标上报 */
+    public static final String WILDCARD_DFX = "materin/+/+/dfx";
 
     /** 共享订阅组名（多实例负载均衡） */
     public static final String SHARE_GROUP = "materin-svc";
 
     /** 设备允许的上行后缀集合 */
     public static boolean isUpSuffix(String suffix) {
-        return UP_REPORT.equals(suffix) || UP_EVENT.equals(suffix) || UP_REPLY.equals(suffix);
+        return UP_REPORT.equals(suffix) || UP_EVENT.equals(suffix) || UP_REPLY.equals(suffix)
+                || UP_DFX.equals(suffix);
     }
 
     /** 设备允许的下行前缀判断 */

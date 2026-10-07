@@ -21,6 +21,7 @@ import java.util.Map;
  * - report：刷新在线 TTL、写遥测最新值 HASH、经 SPI 节流更新 DB last_online、落时序库
  * - event：刷新在线 TTL、落时序库（evt_ 前缀列）
  * - reply：定向回传指令应答
+ * - dfx：健康指标统一管道（DfxSink SPI）
  */
 @Slf4j
 @Component
@@ -35,6 +36,7 @@ public class TelemetryHandler {
     private final ObjectProvider<DeviceCredentialLookup> credentialLookup;
     private final ObjectProvider<com.materin.tech.common.spi.CommandReplySink> replySink;
     private final ObjectProvider<TelemetrySink> telemetrySink;
+    private final ObjectProvider<com.materin.tech.common.spi.DfxSink> dfxSink;
     private final ObjectMapper objectMapper;
 
     public void handle(String productKey, String deviceKey, String suffix, byte[] payload) {
@@ -45,6 +47,23 @@ public class TelemetryHandler {
             handleEvent(deviceKey, payload);
         } else if (MqttTopics.UP_REPLY.equals(suffix)) {
             deliverCommandReply(payload);
+        } else if (MqttTopics.UP_DFX.equals(suffix)) {
+            handleDfx(deviceKey, payload);
+        }
+    }
+
+    /**
+     * dfx：健康指标统一管道（校验→Redis 最新值→时序库→告警评估），
+     * 与 report 共用接入语义但独立管道（docs/dfx-monitoring-design.md §4.1）。
+     */
+    private void handleDfx(String deviceKey, byte[] payload) {
+        Map<String, Object> metrics = parseMap(payload);
+        if (metrics.isEmpty()) {
+            return;
+        }
+        com.materin.tech.common.spi.DfxSink sink = dfxSink.getIfAvailable();
+        if (sink != null) {
+            sink.saveDfx(deviceKey, System.currentTimeMillis(), "mqtt", metrics);
         }
     }
 

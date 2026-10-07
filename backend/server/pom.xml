@@ -48,6 +48,10 @@
         </dependency>
         <dependency>
             <groupId>com.materin.tech</groupId>
+            <artifactId>network-snmp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
             <artifactId>network-coap</artifactId>
         </dependency>
         <dependency>

@@ -1,0 +1,8 @@
+# 格物平台 SNMP 轮询参考配置（docs/dfx-monitoring-design.md §4.3）
+# Linux 设备侧: apt install snmpd && cp snmpd.conf.sample /etc/snmp/snmpd.conf
+# /etc/snmp/snmpd.conf
+agentAddress udp:0.0.0.0:161
+rocommunity public 0.0.0.0/0
+# UCD-SNMP-MIB (CPU/内存/负载) 与 HOST-RESOURCES-MIB 默认启用
+# 平台侧 dfx_snmp_target: host=<设备IP>, port=161, version=v2c, community=public, interval_seconds=60
+# 验证: snmpwalk -v2c -c public <设备IP> 1.3.6.1.4.1.2021

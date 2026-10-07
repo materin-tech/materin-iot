@@ -46,5 +46,17 @@
     "invoke": "调用",
     "trigger": "模拟上报",
     "readonly": "只读"
+  },
+  "monitor": {
+    "title": "设备运维",
+    "pickDevice": "选择设备",
+    "cpu": "CPU 使用率",
+    "mem": "内存使用率",
+    "load": "负载 / 磁盘",
+    "latest": "最新指标",
+    "noData": "暂无数据（设备上报 DFX 指标后展示，参见 docs/dfx-monitoring-design.md）",
+    "source": "来源",
+    "uptime": "运行时长",
+    "refresh": "刷新"
   }
 }

@@ -17,6 +17,7 @@
 
     <modules>
         <module>network-mqtt</module>
+        <module>network-snmp</module>
         <module>network-coap</module>
     </modules>
 </project>

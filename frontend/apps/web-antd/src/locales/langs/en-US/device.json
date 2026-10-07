@@ -46,5 +46,17 @@
     "invoke": "Invoke",
     "trigger": "Simulate",
     "readonly": "Read-only"
+  },
+  "monitor": {
+    "title": "Device Ops",
+    "pickDevice": "Pick device",
+    "cpu": "CPU Usage",
+    "mem": "Memory Usage",
+    "load": "Load / Disk",
+    "latest": "Latest",
+    "noData": "No data yet (see docs/dfx-monitoring-design.md)",
+    "source": "Source",
+    "uptime": "Uptime",
+    "refresh": "Refresh"
   }
 }

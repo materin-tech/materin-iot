@@ -1,3 +1,2 @@
-export * from './alert';
 export * from './device';
-export * from './rule';
+export * from './dfx';

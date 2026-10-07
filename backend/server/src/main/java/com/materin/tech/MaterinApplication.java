@@ -7,6 +7,7 @@ import org.mybatis.spring.mapper.MapperScannerConfigurer;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.context.annotation.Bean;
 
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.List;
  * 启动入口：仅负责装配 system 板块与 component 板块的全部模块。
  */
 @Slf4j
+@EnableScheduling
 @SpringBootApplication
 public class MaterinApplication {
 
