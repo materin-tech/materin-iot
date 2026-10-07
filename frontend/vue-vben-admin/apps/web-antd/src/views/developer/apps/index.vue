@@ -15,7 +15,6 @@ import {
   Steps as ASteps,
   Table as ATable,
   Tag as ATag,
-  Typography as ATypography,
 } from 'ant-design-vue';
 
 import {
@@ -164,20 +163,6 @@ function onPageChange(page: number, pageSize: number) {
 function showTotal(t: number) {
   return `共 ${t} 个应用`;
 }
-
-const columns = [
-  { title: '应用名', dataIndex: 'name', key: 'name' },
-  { title: 'AK', dataIndex: 'appKey', key: 'appKey' },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    key: 'status',
-    customRender: ({ text }: any) => (text === 1 ? '启用' : '禁用'),
-  },
-  { title: '备注', dataIndex: 'remark', key: 'remark' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
-  { title: '操作', key: 'action', width: 180 },
-];
 
 const TOPIC_ROWS = [
   ['materin/{productKey}/{deviceKey}/report', '订阅', '设备数据上报（实时透传）'],

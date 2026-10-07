@@ -9,7 +9,7 @@ spring:
     locations: classpath:db/migration
     # 存量库首启时打 baseline（跳过 V1 全量建表），新库走全量 V1
     baseline-on-migrate: true
-    baseline-version: "1"
+    baseline-version: "0"
     out-of-order: true
   autoconfigure:
     # knife4j 4.5.0 自动配置面向 springdoc 2.2，Boot 3.4 下排除（doc.html 静态 UI 不受影响）

@@ -31,7 +31,6 @@ public class RbacDataInitializer implements ApplicationRunner {
     private final SysUserRoleMapper sysUserRoleMapper;
     private final SysRoleMenuMapper sysRoleMenuMapper;
     private final com.materin.tech.system.rbac.mapper.SysOrgMapper sysOrgMapper;
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
     @Override
@@ -42,7 +41,8 @@ public class RbacDataInitializer implements ApplicationRunner {
         if (adminId != null && adminRoleId != null) {
             linkUserRole(adminId, adminRoleId);
         }
-        ensureMenus(adminRoleId);
+        // 菜单数据由 Flyway 迁移负责（V2/V4）；这里只保证 admin 角色拥有全部菜单
+        grantAllMenusToAdmin(adminRoleId);
         ensureOrgs();
         log.info("RBAC 种子数据就绪（admin / 123456，首次登录将要求修改密码）");
     }
@@ -81,52 +81,16 @@ public class RbacDataInitializer implements ApplicationRunner {
         }
     }
 
-    private void ensureMenus(Long adminRoleId) {
-        if (sysMenuMapper.selectCountByQuery(QueryWrapper.create()) > 0) {
+    /** admin 角色绑定全部菜单（幂等；新菜单由迁移入库后，重启即自动授权给 admin）。 */
+    private void grantAllMenusToAdmin(Long adminRoleId) {
+        if (adminRoleId == null) {
             return;
         }
-        SysMenu system = new SysMenu();
-        system.setName("系统管理");
-        system.setPid(0L);
-        system.setType("catalog");
-        system.setPath("/system");
-        system.setSort(1);
-        sysMenuMapper.insert(system);
-
-        system.setStatus(1);
-        system.setSort(1);
-        system.setMetaJson(meta("系统管理", "ion:settings-outline", 7));
-        sysMenuMapper.insert(system);
-
-        String[][] children = {
-                {"用户管理", "/system/user", "/system/user/index", "AC_100100", "mdi:account-box-multiple"},
-                {"角色管理", "/system/role", "/system/role/index", "AC_100110", "mdi:account-group"},
-                {"菜单管理", "/system/menu", "/system/menu/index", "AC_100120", "mdi:menu"},
-                {"组织管理", "/system/org", "/system/org/index", "AC_100010", "mdi:account-multiple"},
-                {"安全设置", "/system/security", "/system/security/index", "AC_100130", "mdi:shield-check"},
-        };
-        for (int i = 0; i < children.length; i++) {
-            SysMenu menu = new SysMenu();
-            menu.setName(children[i][0]);
-            menu.setPid(system.getId());
-            menu.setType("menu");
-            menu.setPath(children[i][1]);
-            menu.setComponent(children[i][2]);
-            menu.setAuthCode(children[i][3]);
-            menu.setStatus(1);
-            menu.setSort(i + 1);
-            menu.setMetaJson(meta(children[i][0], children[i][4], i + 1));
-            sysMenuMapper.insert(menu);
-            sysRoleMenuMapper.insert(new SysRoleMenu(adminRoleId, menu.getId()));
-        }
-    }
-
-    private String meta(String title, String icon, int order) {
-        try {
-            return objectMapper.writeValueAsString(java.util.Map.of(
-                    "title", title, "icon", icon, "order", order));
-        } catch (Exception e) {
-            return "{}";
+        for (SysMenu menu : sysMenuMapper.selectAll()) {
+            if (sysRoleMenuMapper.selectCountByQuery(QueryWrapper.create()
+                    .eq("role_id", adminRoleId).eq("menu_id", menu.getId())) == 0) {
+                sysRoleMenuMapper.insert(new SysRoleMenu(adminRoleId, menu.getId()));
+            }
         }
     }
 

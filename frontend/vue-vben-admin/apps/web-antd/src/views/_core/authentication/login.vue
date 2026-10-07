@@ -12,8 +12,11 @@ defineOptions({ name: 'Login' });
 
 const authStore = useAuthStore();
 
+/** 滑块验证码开关：VITE_CAPTCHA_DISABLED=true 时关闭（自动化测试用） */
+const captchaDisabled = import.meta.env.VITE_CAPTCHA_DISABLED === 'true';
+
 const formSchema = computed((): VbenFormSchema[] => {
-  return [
+  const schema: VbenFormSchema[] = [
     {
       component: 'VbenInput',
       componentProps: {
@@ -32,14 +35,19 @@ const formSchema = computed((): VbenFormSchema[] => {
       label: $t('authentication.password'),
       rules: z.string().min(1, { message: $t('authentication.passwordTip') }),
     },
-    {
+  ];
+
+  if (!captchaDisabled) {
+    schema.push({
       component: markRaw(SliderCaptcha),
       fieldName: 'captcha',
       rules: z.boolean().refine((value) => value, {
         message: $t('authentication.verifyRequiredTip'),
       }),
-    },
-  ];
+    });
+  }
+
+  return schema;
 });
 </script>
 

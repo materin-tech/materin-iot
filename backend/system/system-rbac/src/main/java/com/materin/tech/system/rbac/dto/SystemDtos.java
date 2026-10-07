@@ -86,6 +86,15 @@ public final class SystemDtos {
             @Schema(description = "子菜单") List<MenuNode> children) {
     }
 
+    @Schema(description = "当前用户菜单路由节点（vben backend 模式，meta.name 为路由名）")
+    public record RouteNode(
+            @Schema(description = "路由名（如 SystemUser）") String name,
+            @Schema(description = "路由路径") String path,
+            @Schema(description = "组件路径（相对 views，如 system/user/list；目录为空）") String component,
+            @Schema(description = "路由元信息（title/icon/order/hideInMenu 等）") Map<String, Object> meta,
+            @Schema(description = "子路由") List<RouteNode> children) {
+    }
+
     @Schema(description = "组织创建/更新请求")
     public record OrgUpsertRequest(
             @Schema(description = "组织名") String name,

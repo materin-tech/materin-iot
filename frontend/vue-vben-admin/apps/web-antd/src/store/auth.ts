@@ -19,6 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
   const router = useRouter();
 
   const loginLoading = ref(false);
+  // 等保三级：登录密码已过期时强制弹窗修改密码（不可关闭，不改则登出）
+  const forceChangePassword = ref(false);
 
   /**
    * 异步处理登录操作
@@ -62,22 +64,21 @@ export const useAuthStore = defineStore('auth', () => {
               );
         }
 
-        // 等保三级：密码即将到期/已过期时，在跳转完成后提醒用户尽快修改密码
-        if (
-          loginResult.passwordStatus === 'EXPIRED' ||
-          loginResult.passwordStatus === 'EXPIRING'
-        ) {
+        // 等保三级：密码状态处理
+        // EXPIRING：仅提醒，用户可选择稍后去 /profile 修改
+        if (loginResult.passwordStatus === 'EXPIRING') {
           Modal.warning({
-            content:
-              loginResult.passwordStatus === 'EXPIRED'
-                ? '登录密码已过期，请尽快修改密码。'
-                : '登录密码即将到期，请尽快修改密码。',
+            content: '登录密码即将到期，请尽快修改密码。',
             okText: '去修改密码',
             onOk: () => {
               router.push('/profile');
             },
             title: '密码到期提醒',
           });
+        }
+        // EXPIRED：强制弹窗修改密码（force-change-password 组件挂载在基础布局中）
+        if (loginResult.passwordStatus === 'EXPIRED') {
+          forceChangePassword.value = true;
         }
 
         if (userInfo?.realName) {
@@ -132,12 +133,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   function $reset() {
     loginLoading.value = false;
+    forceChangePassword.value = false;
   }
 
   return {
     $reset,
     authLogin,
     fetchUserInfo,
+    forceChangePassword,
     loginLoading,
     logout,
   };

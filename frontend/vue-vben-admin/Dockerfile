@@ -14,6 +14,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # 构建时注入 API 地址（走容器内 nginx 反代，同源）
 ENV VITE_GLOB_API_URL=/api/v1
+# 自动化测试：--build-arg CAPTCHA_DISABLED=true 可关闭登录滑块验证码
+ARG CAPTCHA_DISABLED=false
+ENV VITE_CAPTCHA_DISABLED=${CAPTCHA_DISABLED}
 RUN pnpm run build --filter=@vben/web-antd
 
 FROM docker.m.daocloud.io/library/nginx:stable-alpine

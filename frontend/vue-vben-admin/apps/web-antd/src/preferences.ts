@@ -19,6 +19,8 @@ export const overridesPreferences = defineOverridesPreferences({
   // overrides
   app: {
     name: import.meta.env.VITE_APP_TITLE,
+    // 菜单路由由后端下发（sys_menu + RBAC 角色-菜单绑定）
+    accessMode: 'backend',
   },
   logo: {
     // 格物 IoT 自定义 logo

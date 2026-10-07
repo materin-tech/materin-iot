@@ -5,8 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.materin.tech.common.exception.BizException;
 import com.materin.tech.system.rbac.dto.SystemDtos.MenuNode;
 import com.materin.tech.system.rbac.dto.SystemDtos.MenuUpsertRequest;
+import com.materin.tech.system.rbac.dto.SystemDtos.RouteNode;
 import com.materin.tech.system.rbac.entity.SysMenu;
+import com.materin.tech.system.rbac.entity.SysRoleMenu;
+import com.materin.tech.system.rbac.entity.SysUserRole;
 import com.materin.tech.system.rbac.mapper.SysMenuMapper;
+import com.materin.tech.system.rbac.mapper.SysRoleMenuMapper;
+import com.materin.tech.system.rbac.mapper.SysUserRoleMapper;
 import com.mybatisflex.core.query.QueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,11 +31,70 @@ public class SysMenuService {
     };
 
     private final SysMenuMapper sysMenuMapper;
+    private final SysRoleMenuMapper sysRoleMenuMapper;
+    private final SysUserRoleMapper sysUserRoleMapper;
     private final ObjectMapper objectMapper;
 
     public List<MenuNode> listTree() {
         List<SysMenu> all = sysMenuMapper.selectAll();
         return buildTree(all);
+    }
+
+    /**
+     * 当前用户可见的菜单路由树（vben backend 模式）：
+     * 角色 -> 菜单，过滤禁用与 button 权限点（权限码走 /auth/codes）。
+     */
+    public List<RouteNode> listRouteTreeForUser(Long userId) {
+        List<Long> roleIds = sysUserRoleMapper.selectListByQuery(
+                        QueryWrapper.create().eq("user_id", userId))
+                .stream().map(SysUserRole::getRoleId).distinct().toList();
+        if (roleIds.isEmpty()) {
+            return List.of();
+        }
+        List<Long> menuIds = sysRoleMenuMapper.selectListByQuery(
+                        QueryWrapper.create().in("role_id", roleIds))
+                .stream().map(SysRoleMenu::getMenuId).distinct().toList();
+        if (menuIds.isEmpty()) {
+            return List.of();
+        }
+        List<SysMenu> menus = sysMenuMapper.selectListByIds(menuIds).stream()
+                .filter(m -> m.getStatus() == null || m.getStatus() == 1)
+                .filter(m -> !"button".equals(m.getType()))
+                .toList();
+        Map<Long, List<SysMenu>> byPid = menus.stream()
+                .collect(Collectors.groupingBy(m -> m.getPid() == null ? 0L : m.getPid()));
+        return routeChildrenOf(0L, byPid);
+    }
+
+    private List<RouteNode> routeChildrenOf(Long pid, Map<Long, List<SysMenu>> byPid) {
+        List<RouteNode> nodes = new java.util.ArrayList<>();
+        for (SysMenu menu : byPid.getOrDefault(pid, List.of()).stream()
+                .sorted(Comparator.comparing(m -> m.getSort() == null ? 0 : m.getSort()))
+                .toList()) {
+            Map<String, Object> meta = readMeta(menu.getMetaJson());
+            // 路由名：meta.name（种子数据必填）；缺失时回退用 path 派生
+            String name = String.valueOf(meta.getOrDefault("name", pathToName(menu.getPath())));
+            meta = new java.util.HashMap<>(meta);
+            meta.put("name", name);
+            meta.putIfAbsent("title", menu.getName());
+            nodes.add(new RouteNode(name, menu.getPath(), menu.getComponent(), meta,
+                    routeChildrenOf(menu.getId(), byPid)));
+        }
+        return nodes;
+    }
+
+    private String pathToName(String path) {
+        if (!StringUtils.hasText(path)) {
+            return "Route" + java.util.UUID.randomUUID().toString().replace("-", "");
+        }
+        String[] segments = path.replaceAll("^/+", "").split("/");
+        StringBuilder sb = new StringBuilder();
+        for (String segment : segments) {
+            if (!segment.isEmpty()) {
+                sb.append(Character.toUpperCase(segment.charAt(0))).append(segment.substring(1));
+            }
+        }
+        return sb.toString();
     }
 
     public boolean isNameExists(String name, Long id) {

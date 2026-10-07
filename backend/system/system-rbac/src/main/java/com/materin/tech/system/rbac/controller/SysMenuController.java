@@ -4,10 +4,14 @@ import com.materin.tech.common.core.ApiVersions;
 import com.materin.tech.common.core.R;
 import com.materin.tech.system.rbac.dto.SystemDtos.MenuNode;
 import com.materin.tech.system.rbac.dto.SystemDtos.MenuUpsertRequest;
+import com.materin.tech.system.rbac.dto.SystemDtos.RouteNode;
+import com.materin.tech.system.rbac.security.AuthInterceptor;
+import com.materin.tech.system.rbac.security.CurrentUser;
 import com.materin.tech.system.rbac.service.SysMenuService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,6 +33,13 @@ import java.util.List;
 public class SysMenuController {
 
     private final SysMenuService sysMenuService;
+
+    @Operation(summary = "获取当前用户菜单路由", description = "权限：需登录；按角色-菜单绑定下发，前端 backend 模式动态建路由")
+    @GetMapping("/routes")
+    public R<List<RouteNode>> routes(HttpServletRequest request) {
+        CurrentUser current = (CurrentUser) request.getAttribute(AuthInterceptor.ATTR_CURRENT_USER);
+        return R.ok(sysMenuService.listRouteTreeForUser(current.userId()));
+    }
 
     @Operation(summary = "查询菜单树", description = "权限：需登录，功能权限码 AC_100120（菜单管理）")
     @GetMapping("/list")

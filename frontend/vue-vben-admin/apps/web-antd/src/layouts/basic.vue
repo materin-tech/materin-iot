@@ -15,6 +15,7 @@ import {
 import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 
+import ForceChangePassword from '#/components/force-change-password/force-change-password.vue';
 import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
@@ -223,6 +224,7 @@ watch(
       >
         <LoginForm />
       </AuthenticationLoginExpiredModal>
+      <ForceChangePassword />
     </template>
     <template #lock-screen>
       <LockScreen :avatar @to-login="handleLogout" />
