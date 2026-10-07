@@ -24,5 +24,28 @@
     "debug": "Online Debugging",
     "alert": "Event Alerts",
     "rule": "Rule Linkage"
+  },
+  "dfx": {
+    "title": "DFX Monitoring",
+    "common": {
+      "refresh": "Refresh"
+    },
+    "components": {
+      "title": "Components",
+      "pipeline": "Pipeline Stats",
+      "lastIngest": "Last ingest"
+    },
+    "metrics": {
+      "title": "Metrics",
+      "pickProduct": "Product",
+      "pickDevice": "Device",
+      "editLayout": "Edit layout",
+      "saveLayout": "Save layout",
+      "addChart": "Add chart",
+      "noData": "No data yet"
+    },
+    "rules": {
+      "title": "Alert Rules"
+    }
   }
 }
