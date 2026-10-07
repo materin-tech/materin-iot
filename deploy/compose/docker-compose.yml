@@ -195,6 +195,8 @@ services:
       dockerfile: ../deploy/compose/Dockerfile.backend
     container_name: materin-backend
     restart: unless-stopped
+    volumes:
+      - storage-local-data:/app/data/storage
     environment:
       TZ: Asia/Shanghai
       MYSQL_HOST: mysql
@@ -203,7 +205,9 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MATERIN_NETWORK_MQTT_HOST: emqx
-      MATERIN_STORAGE_ENDPOINT: http://minio:9000
+      MATERIN_STORAGE_TYPE: ${MATERIN_STORAGE_TYPE:-MINIO}
+      MATERIN_STORAGE_ENDPOINT: ${MATERIN_STORAGE_ENDPOINT:-http://minio:9000}
+      MATERIN_STORAGE_LOCAL_PUBLIC_URL: ${MATERIN_STORAGE_LOCAL_PUBLIC_URL:-}
       MATERIN_STORAGE_EXTERNAL_ENDPOINT: ${MATERIN_STORAGE_EXTERNAL_ENDPOINT:-http://host.docker.internal:9000}
       MATERIN_STORAGE_ACCESS_KEY: ${MATERIN_STORAGE_ACCESS_KEY:-minioadmin}
       MATERIN_STORAGE_SECRET_KEY: ${MATERIN_STORAGE_SECRET_KEY:-minioadmin}
@@ -256,5 +260,6 @@ volumes:
   redis-data:
   emqx-data:
   emqx2-data:
+  storage-local-data:
   minio-data:
   iotdb-data:
