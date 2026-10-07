@@ -14,7 +14,7 @@ DEVICE_SECRET=<设备密钥> INTERVAL=60 ./dfx-agent.sh
 ```bash
 MODE=http URL=http://<平台>:8080/api/v1/device/dfx/report DEVICE_KEY=<设备Key> \
 DEVICE_SECRET=<设备密钥> INTERVAL=60 ./dfx-agent.sh
-更多接入协议（SNMP/LwM2M）与指标字典见 `docs/dfx-monitoring-design.md`。
+接入说明与更多案例：`docs/dfx-developer-guide.md`；协议规范与指标字典：`docs/dfx-monitoring-design.md`。
 
 ### SNMP 路线（Linux 发行版预装 snmpd，零代码）
 配置样例见 `docs/dfx/snmpd.conf.sample`，平台侧在设备运维页配置轮询目标即可。
