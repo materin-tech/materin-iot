@@ -79,19 +79,63 @@ public class OtaController {
         return R.ok(taskService.list(page, pageSize));
     }
 
-    @Operation(summary = "创建升级任务并推送（按产品统一：{packageId, productId}；按设备单独：{packageId, deviceIds}）")
+    @Operation(summary = "创建升级计划（只登记口径，不展开设备；scope 由 productId 是否传决定）")
     @PostMapping("/task")
-    public R<OtaTask> createTask(@RequestBody Map<String, Object> body) {
+    public R<OtaTask> createPlan(@RequestBody Map<String, Object> body) {
         OtaTask task = new OtaTask();
         task.setPackageId(Long.valueOf(String.valueOf(body.get("packageId"))));
-        task.setTaskName((String) body.getOrDefault("taskName", "OTA 升级"));
-        List<Long> deviceIds = List.of();
-        if (body.get("deviceIds") instanceof List<?> ids) {
-            deviceIds = ids.stream().map(v -> Long.valueOf(String.valueOf(v))).toList();
-        }
+        task.setTaskName((String) body.getOrDefault("taskName", "OTA 升级计划"));
         Long productId = body.get("productId") == null
                 ? null : Long.valueOf(String.valueOf(body.get("productId")));
-        return R.ok(taskService.createTask(task, deviceIds, productId));
+        return R.ok(taskService.createPlan(task, productId));
+    }
+
+    @Operation(summary = "计划详情：分页候选设备（排除已添加；scope=product 限该产品）")
+    @GetMapping("/task/{id}/candidates")
+    public R<Map<String, Object>> candidates(@PathVariable Long id,
+                                             @RequestParam(required = false) String keyword,
+                                             @RequestParam(defaultValue = "1") long page,
+                                             @RequestParam(defaultValue = "20") long pageSize) {
+        return R.ok(taskService.candidateDevices(id, keyword, page, pageSize));
+    }
+
+    @Operation(summary = "计划添加设备（分批去重插入，返回新增数）")
+    @PostMapping("/task/{id}/devices")
+    public R<Map<String, Object>> addDevices(@PathVariable Long id,
+                                             @RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Number> ids = (List<Number>) body.get("deviceIds");
+        List<Long> deviceIds = ids == null ? List.of()
+                : ids.stream().map(v -> Long.valueOf(String.valueOf(v))).toList();
+        return R.ok(Map.of("added", taskService.addDevices(id, deviceIds)));
+    }
+
+    @Operation(summary = "启动计划（未启动/暂停 → 进行中，异步分批推送）")
+    @PostMapping("/task/{id}/start")
+    public R<Void> start(@PathVariable Long id) {
+        taskService.start(id);
+        return R.ok(null);
+    }
+
+    @Operation(summary = "暂停计划")
+    @PostMapping("/task/{id}/pause")
+    public R<Void> pause(@PathVariable Long id) {
+        taskService.pause(id);
+        return R.ok(null);
+    }
+
+    @Operation(summary = "恢复计划（继续推送）")
+    @PostMapping("/task/{id}/resume")
+    public R<Void> resume(@PathVariable Long id) {
+        taskService.resume(id);
+        return R.ok(null);
+    }
+
+    @Operation(summary = "终止计划（终态，不可再启动；待推送明细取消）")
+    @PostMapping("/task/{id}/terminate")
+    public R<Void> terminate(@PathVariable Long id) {
+        taskService.terminate(id);
+        return R.ok(null);
     }
 
     @Operation(summary = "任务设备明细（分页，含状态/进度）")
