@@ -92,7 +92,7 @@ class MqttAccessPolicyTest {
         // 设备凭证不允许连开发者 broker：即使 lookup 命中也要拒绝
         DeviceCredentialLookup lookup = Mockito.mock(DeviceCredentialLookup.class);
         Mockito.when(lookup.findByKey("th-001"))
-                .thenReturn(Optional.of(new DeviceCredentialLookup.DeviceCredential("th-001", 1L, "secret")));
+                .thenReturn(Optional.of(new DeviceCredentialLookup.DeviceCredential("th-001", 1L, "secret", "测试设备")));
         Mockito.when(credentialLookup.getIfAvailable()).thenReturn(lookup);
         assertThat(policy.authenticateOpen("th-001", "secret")).isFalse();
     }

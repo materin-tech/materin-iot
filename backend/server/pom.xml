@@ -48,7 +48,15 @@
         </dependency>
         <dependency>
             <groupId>com.materin.tech</groupId>
-            <artifactId>network-snmp</artifactId>
+            <artifactId>dfx-access-snmp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
+            <artifactId>dfx-access-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
+            <artifactId>dfx-access-mqtt</artifactId>
         </dependency>
         <dependency>
             <groupId>com.materin.tech</groupId>

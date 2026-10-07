@@ -8,7 +8,6 @@ import com.materin.tech.component.device.mapper.DeviceMapper;
 import com.mybatisflex.core.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -25,30 +24,27 @@ public class DfxOfflineDetector {
 
     private final DeviceMapper deviceMapper;
     private final DeviceAlertMapper alertMapper;
+    private final StringRedisTemplate redis;
 
     public DfxOfflineDetector(DeviceMapper deviceMapper, DeviceAlertMapper alertMapper,
-                              ObjectProvider<StringRedisTemplate> redisProvider) {
+                              StringRedisTemplate redis) {
         this.deviceMapper = deviceMapper;
         this.alertMapper = alertMapper;
-        this.redis = redisProvider.getIfAvailable();
+        this.redis = redis;
     }
-
-    private final StringRedisTemplate redis;
 
     /** 60s 巡检一次在线状态迁移。 */
     @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
     public void patrol() {
-        if (redis == null) {
-            return;
-        }
         List<Device> devices = deviceMapper.selectAll();
-        boolean online;
         for (Device d : devices) {
-            online = redis.hasKey(RedisKeys.DEVICE_ONLINE + d.getDeviceKey());
-            if (online && d.getStatus() == null || online && d.getStatus() != 1) {
+            boolean online = Boolean.TRUE.equals(
+                    redis.hasKey(RedisKeys.DEVICE_ONLINE + d.getDeviceKey()));
+            Integer status = d.getStatus();
+            if (online && !Integer.valueOf(1).equals(status)) {
                 d.setStatus(1);
                 deviceMapper.update(d);
-            } else if (!online && d.getStatus() == null || !online && d.getStatus() != 2) {
+            } else if (!online && !Integer.valueOf(2).equals(status)) {
                 d.setStatus(2);
                 deviceMapper.update(d);
                 raiseOfflineAlert(d);
@@ -62,7 +58,7 @@ public class DfxOfflineDetector {
         a.setDeviceName(d.getName());
         a.setLevel("warn");
         a.setContent("设备离线（超过在线判定窗口无任何上行消息）");
-        a.setStatus(0); // 0-未处理
+        a.setStatus(0);
         alertMapper.insert(a);
         log.info("设备离线告警: {}", d.getDeviceKey());
     }

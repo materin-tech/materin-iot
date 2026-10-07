@@ -57,6 +57,9 @@
     "noData": "No data yet (see docs/dfx-monitoring-design.md)",
     "source": "Source",
     "uptime": "Uptime",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "accessHealth": "Access Components",
+    "pipeline": "Pipeline Stats",
+    "ingestCount": "Ingested Frames"
   }
 }

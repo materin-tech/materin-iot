@@ -57,6 +57,9 @@
     "noData": "暂无数据（设备上报 DFX 指标后展示，参见 docs/dfx-monitoring-design.md）",
     "source": "来源",
     "uptime": "运行时长",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "accessHealth": "接入组件健康",
+    "pipeline": "管道统计",
+    "ingestCount": "接入帧数"
   }
 }

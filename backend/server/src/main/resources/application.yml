@@ -51,8 +51,17 @@ materin:
       service-password: ${MATERIN_MQTT_SERVICE_PASSWORD:materin-svc-dev-password}
       online-ttl-seconds: 300
   dfx:
-    snmp:
-      enabled: ${MATERIN_DFX_SNMP_ENABLED:true}
+    access:
+      mqtt:
+        enabled: ${MATERIN_DFX_MQTT_ENABLED:true}
+        host: ${MATERIN_NETWORK_MQTT_HOST:127.0.0.1}
+        port: ${MATERIN_NETWORK_MQTT_PORT:1883}
+        username: ${MATERIN_MQTT_SERVICE_USERNAME:materin-svc-consumer}
+        password: ${MATERIN_MQTT_SERVICE_PASSWORD:materin-svc-dev-password}
+        share-group: materin-dfx
+        online-ttl-seconds: 300
+      snmp:
+        enabled: ${MATERIN_DFX_SNMP_ENABLED:true}
   security:
     jwt:
       secret: ${MATERIN_SECURITY_JWT_SECRET:dev-only-materin-default-secret-change-me-32b!}

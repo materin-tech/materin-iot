@@ -34,7 +34,7 @@ public class DeviceCredentialLookupImpl implements DeviceCredentialLookup {
             return Optional.empty();
         }
         return Optional.of(new DeviceCredential(device.getDeviceKey(),
-                device.getId(), device.getSecret()));
+                device.getId(), device.getSecret(), device.getName()));
     }
 
     @Override
@@ -46,6 +46,14 @@ public class DeviceCredentialLookupImpl implements DeviceCredentialLookup {
     public Optional<String> findKeyById(Long deviceId) {
         Device device = deviceMapper.selectOneByQuery(QueryWrapper.create().eq("id", deviceId));
         return device == null ? Optional.empty() : Optional.of(device.getDeviceKey());
+    }
+
+    @Override
+    public Optional<Long> findProductIdByKey(String deviceKey) {
+        Device device = deviceMapper.selectOneByQuery(
+                QueryWrapper.create().eq("device_key", deviceKey));
+        return device == null || device.getProductId() == null
+                ? Optional.empty() : Optional.of(device.getProductId());
     }
 
     @Override

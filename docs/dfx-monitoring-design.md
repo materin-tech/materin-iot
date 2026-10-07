@@ -1,6 +1,6 @@
 # 设备 DFX 健康监控 — 接入标准规范与选型设计
 
-> 版本：v1.0（2026-10-07） · 状态：已按本规范实现 SNMP + MQTT + HTTP 三通道与设备运维页
+> 版本：v1.1（2026-10-07） · 状态：DFX 已组件化（dfx-component + 协议子模块），SNMP/MQTT/HTTP 三通道已实现并验证
 > DFX = Design for X（可靠性/可运维性设计），本规范定义设备侧运行健康指标（CPU/内存/磁盘/网络/在线状态等）
 > 如何以统一口径接入平台，实现监控、展示与阈值告警的闭环。
 
@@ -32,6 +32,31 @@ flowchart LR
 
 **核心约束：任何接入协议产生的指标，必须映射到第 3 节的统一指标字典后进入管道；
 管道内（校验、存储、告警、展示）不感知协议。** 新增协议（如 LwM2M）只需实现一个适配器。
+
+### 1.1.1 组件化架构（v1.1）
+
+DFX 抽象为独立组件 `dfx-component`，统一接口与协议实现分层：
+
+```
+dfx-component/
+├── dfx-core            统一标准（协议无关）：
+│     · DfxRecord —— KV 信息模型 / JSON 中间数据结构（deviceKey, time, source, metrics{}）
+│     · DfxIngestService —— 管道：KV 校验 → Redis 最新值 → IoTDB（dfx_ 前缀列）→ 阈值告警 → 健康统计
+│     · 阈值规则（dfx_alert_rule，通用能力）
+│     · /device/dfx/health —— 接入组件健康状态接口
+├── dfx-access-mqtt     MQTT 接入实现（独立共享订阅 $share/materin-dfx/…/dfx，可独立开关）
+├── dfx-access-http     HTTP 接入实现（/device/dfx/report[/batch]，设备 secret 鉴权）
+└── dfx-access-snmp     SNMP 接入实现（轮询器 + 轮询目标配置，UCD-SNMP-MIB OID 映射）
+```
+
+核心原则：
+- **dfx-core 不含任何协议语义**（无 SNMP/LwM2M 概念），只认 DfxRecord（JSON-KV）与统一指标字典；
+  底层存储走 timeseries-component 抽象（实现 = IoTDB）。
+- 各协议实现为独立子模块，实现 `DfxAccessHealthProvider` 暴露健康状态，
+  经 `GET /device/dfx/health` 汇总，供前端"接入组件健康"卡片展示。
+- 新增协议 = 新增一个子模块调用 `DfxIngestService.ingest(DfxRecord)`，
+  核心管道零改动。
+- LwM2M 二期方案取消：受限设备建议经网关以 MQTT/HTTP 通道接入。
 
 ### 1.2 选型结论与理由
 
@@ -143,18 +168,6 @@ flowchart LR
 - 告警落 `device_alert`（content 如 `CPU 使用率 95.2% 超过阈值 90%（连续抑制 600s）`）。
 - **抑制窗口**：同一 (device, metric) 触发告警后 `suppress_seconds`（默认 600s）内不重复产生；
   窗口过后仍越限则再次告警。平台重启后抑制状态清零（一期可接受）。
-
-## 6. 二期：LwM2M（预留）
-
-平台嵌入 Eclipse Leshan Server（CoAP :5683），IPSO 对象映射：
-
-| LwM2M/IPSO 对象 | 资源 | 统一指标 |
-|---|---|---|
-| Object 3 (Device) | Available Memory / Error Code / Unix Time | `mem_usage_pct`（换算）等 |
-| Object 4 (Connectivity) | Signal Strength / Link Quality | 自定义 `net_*` |
-| Object 3313?/自定义 33000+ | CPU Load | `cpu_usage_pct` |
-
-适配器实现 `DfxSink` 同一 SPI 即可接入管道（无需改动存储/告警/展示）。
 
 ## 7. 开发者文档与实现落点
 

@@ -73,12 +73,33 @@
             </dependency>
             <dependency>
                 <groupId>com.materin.tech</groupId>
-                <artifactId>network-coap</artifactId>
+                <artifactId>dfx-component</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>dfx-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.materin.tech</groupId>
-                <artifactId>network-snmp</artifactId>
+                <artifactId>dfx-access-snmp</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>dfx-access-http</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>dfx-access-mqtt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>network-coap</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

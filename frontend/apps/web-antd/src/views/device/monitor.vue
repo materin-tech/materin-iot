@@ -8,7 +8,8 @@ import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
 
 import { Button, Card, Select } from 'ant-design-vue';
 
-import { getDfxHistory, getDfxLatest, getDeviceList } from '#/api/device';
+import { getDfxHealth, getDfxHistory, getDfxLatest, getDeviceList } from '#/api/device';
+import type { DfxApi } from '#/api/device/dfx';
 import { $t } from '#/locales';
 
 defineOptions({ name: 'DeviceMonitor' });
@@ -23,6 +24,13 @@ const deviceOptions = ref<DeviceRow[]>([]);
 const currentDeviceKey = ref<string>();
 const latest = ref<Record<string, string>>({});
 const noData = ref(false);
+const health = ref<DfxApi.DfxHealthResponse>();
+
+const HEALTH_STATUS_COLOR: Record<string, string> = {
+  UP: '#10b981',
+  DOWN: '#ef4444',
+  DISABLED: '#9ca3af',
+};
 
 const cpuRef = ref<EchartsUIType>();
 const memRef = ref<EchartsUIType>();
@@ -95,8 +103,13 @@ async function loadHistory() {
   ]));
 }
 
+async function loadHealth() {
+  const data = await getDfxHealth();
+  health.value = data ?? undefined;
+}
+
 async function refreshAll() {
-  await Promise.all([loadLatest(), loadHistory()]);
+  await Promise.all([loadLatest(), loadHistory(), loadHealth()]);
 }
 
 function onDeviceChange(key: unknown) {
@@ -147,6 +160,42 @@ onBeforeUnmount(() => {
       <Card><EchartsUI ref="memRef" height="240px" /></Card>
       <Card><EchartsUI ref="loadRef" height="240px" /></Card>
     </div>
+
+    <Card class="mt-4" :title="$t('page.device.monitor.accessHealth')">
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div
+          v-for="c in health?.components ?? []"
+          :key="c.name"
+          class="rounded-lg border p-4"
+        >
+          <div class="flex items-center gap-2">
+            <span
+              class="size-2.5 rounded-full"
+              :style="{ backgroundColor: HEALTH_STATUS_COLOR[c.status] ?? '#9ca3af' }"
+            ></span>
+            <span class="font-medium uppercase">{{ c.name }}</span>
+            <span
+              class="ml-auto text-xs"
+              :style="{ color: HEALTH_STATUS_COLOR[c.status] ?? '#9ca3af' }"
+            >
+              {{ c.status }}
+            </span>
+          </div>
+          <div class="text-muted-foreground mt-2 text-xs leading-5">
+            {{ c.detail }}
+          </div>
+        </div>
+      </div>
+      <div
+        v-if="health?.pipeline && Object.keys(health.pipeline).length"
+        class="text-muted-foreground mt-3 text-xs"
+      >
+        {{ $t('page.device.monitor.pipeline') }}：
+        <span v-for="(s, k) in health.pipeline" :key="k" class="mr-3">
+          {{ k }} — {{ $t('page.device.monitor.ingestCount') }} {{ s.count }}
+        </span>
+      </div>
+    </Card>
 
     <Card class="mt-4" :title="$t('page.device.monitor.latest')">
       <div class="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">

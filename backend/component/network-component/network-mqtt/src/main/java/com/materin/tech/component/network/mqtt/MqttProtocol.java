@@ -68,7 +68,6 @@ public class MqttProtocol implements NetworkProtocol, com.materin.tech.common.sp
         subscribeShared(MqttTopics.WILDCARD_REPORT);
         subscribeShared(MqttTopics.WILDCARD_EVENT);
         subscribeShared(MqttTopics.WILDCARD_REPLY);
-        subscribeShared(MqttTopics.WILDCARD_DFX);
     }
 
     private void subscribeShared(String topic) {

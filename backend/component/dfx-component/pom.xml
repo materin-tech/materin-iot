@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.materin.tech</groupId>
+        <artifactId>component</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>dfx-component</artifactId>
+    <packaging>pom</packaging>
+    <name>Materin DFX Component</name>
+    <description>设备 DFX 健康监控（统一接入接口 + 多协议实现子模块，docs/dfx-monitoring-design.md）</description>
+
+    <modules>
+        <module>dfx-core</module>
+        <module>dfx-access-snmp</module>
+        <module>dfx-access-http</module>
+        <module>dfx-access-mqtt</module>
+    </modules>
+</project>

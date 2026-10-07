@@ -25,6 +25,17 @@ export namespace DfxApi {
     suppressSeconds?: number;
     enabled?: number;
   }
+  export interface DfxAccessHealth {
+    name: string;
+    enabled: boolean;
+    status: 'UP' | 'DOWN' | 'DISABLED' | string;
+    detail: string;
+    lastIngestAt: number | null;
+  }
+  export interface DfxHealthResponse {
+    components: DfxAccessHealth[];
+    pipeline: Record<string, { count: number; lastIngestAt: number }>;
+  }
   export interface DfxHistoryPoint {
     time: number;
     [key: string]: number | string | null;
@@ -57,7 +68,9 @@ async function createDfxRule(data: Omit<DfxApi.DfxRule, 'id'>) {
 async function deleteDfxRule(id: number) {
   return requestClient.delete(`/device/dfx/rule/${id}`);
 }
-export {
-  createDfxRule, createDfxTarget, deleteDfxRule, deleteDfxTarget,
+async function getDfxHealth() {
+  return requestClient.get<DfxApi.DfxHealthResponse>('/device/dfx/health');
+}
+export { getDfxHealth, createDfxRule, createDfxTarget, deleteDfxRule, deleteDfxTarget,
   getDfxHistory, getDfxLatest, getDfxRuleList, getDfxTargetList,
 };
