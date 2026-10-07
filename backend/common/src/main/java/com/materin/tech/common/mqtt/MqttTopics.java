@@ -21,6 +21,10 @@ public final class MqttTopics {
     public static final String UP_REPLY = "reply";
     /** 上行：DFX 健康指标上报（docs/dfx-monitoring-design.md §4.1） */
     public static final String UP_DFX = "dfx";
+    /** 上行：OTA 升级进度上报 */
+    public static final String UP_OTA = "ota";
+    /** 下行：OTA 升级推送 */
+    public static final String DOWN_OTA_PUSH = "ota_push";
     /** 下行：指令下发 */
     public static final String DOWN_CMD = "cmd";
 
@@ -39,12 +43,12 @@ public final class MqttTopics {
     /** 设备允许的上行后缀集合 */
     public static boolean isUpSuffix(String suffix) {
         return UP_REPORT.equals(suffix) || UP_EVENT.equals(suffix) || UP_REPLY.equals(suffix)
-                || UP_DFX.equals(suffix);
+                || UP_DFX.equals(suffix) || UP_OTA.equals(suffix);
     }
 
     /** 设备允许的下行前缀判断 */
     public static boolean isDownPrefix(String suffix) {
-        return DOWN_CMD.equals(suffix);
+        return DOWN_CMD.equals(suffix) || DOWN_OTA_PUSH.equals(suffix);
     }
 
     /**

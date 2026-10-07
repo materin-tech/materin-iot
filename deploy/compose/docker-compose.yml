@@ -169,6 +169,26 @@ services:
       EMQX2_HOST: http://emqx2:18083
       BACKEND_URL: http://backend:8080
 
+  minio:
+    image: docker.1panel.live/minio/minio:latest
+    container_name: materin-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: ${MATERIN_STORAGE_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MATERIN_STORAGE_SECRET_KEY:-minioadmin}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   backend:
     build:
       context: ../../backend
@@ -183,6 +203,11 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MATERIN_NETWORK_MQTT_HOST: emqx
+      MATERIN_STORAGE_ENDPOINT: http://minio:9000
+      MATERIN_STORAGE_EXTERNAL_ENDPOINT: ${MATERIN_STORAGE_EXTERNAL_ENDPOINT:-http://host.docker.internal:9000}
+      MATERIN_STORAGE_ACCESS_KEY: ${MATERIN_STORAGE_ACCESS_KEY:-minioadmin}
+      MATERIN_STORAGE_SECRET_KEY: ${MATERIN_STORAGE_SECRET_KEY:-minioadmin}
+      MATERIN_STORAGE_BUCKET: ${MATERIN_STORAGE_BUCKET:-materin}
       MATERIN_NETWORK_MQTT_PORT: "1883"
       REDIS_HOST: redis
       REDIS_PORT: "6379"
@@ -231,4 +256,5 @@ volumes:
   redis-data:
   emqx-data:
   emqx2-data:
+  minio-data:
   iotdb-data:

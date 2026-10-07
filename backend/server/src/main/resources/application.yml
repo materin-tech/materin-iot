@@ -62,6 +62,15 @@ materin:
         online-ttl-seconds: 300
       snmp:
         enabled: ${MATERIN_DFX_SNMP_ENABLED:true}
+  storage:
+    type: ${MATERIN_STORAGE_TYPE:MINIO}
+    endpoint: ${MATERIN_STORAGE_ENDPOINT:http://127.0.0.1:9000}
+    external-endpoint: ${MATERIN_STORAGE_EXTERNAL_ENDPOINT:}
+    access-key: ${MATERIN_STORAGE_ACCESS_KEY:minioadmin}
+    secret-key: ${MATERIN_STORAGE_SECRET_KEY:minioadmin}
+    bucket: ${MATERIN_STORAGE_BUCKET:materin}
+  ota:
+    enabled: ${MATERIN_OTA_ENABLED:true}
   security:
     jwt:
       secret: ${MATERIN_SECURITY_JWT_SECRET:dev-only-materin-default-secret-change-me-32b!}

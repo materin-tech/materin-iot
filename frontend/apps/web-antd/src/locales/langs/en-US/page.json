@@ -47,5 +47,13 @@
     "rules": {
       "title": "Alert Rules"
     }
+  },
+  "ota": {
+    "packages": {
+      "title": "Firmware"
+    },
+    "tasks": {
+      "title": "OTA Tasks"
+    }
   }
 }

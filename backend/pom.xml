@@ -99,6 +99,27 @@
             </dependency>
             <dependency>
                 <groupId>com.materin.tech</groupId>
+                <artifactId>storage-component</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>storage-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>storage-minio</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
+                <artifactId>ota-component</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
                 <artifactId>network-coap</artifactId>
                 <version>${project.version}</version>
             </dependency>

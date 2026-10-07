@@ -20,6 +20,8 @@
         <module>iotdb-component</module>
         <module>device-component</module>
         <module>dfx-component</module>
+        <module>storage-component</module>
+        <module>ota-component</module>
         <module>product-component</module>
         <module>network-component</module>
     </modules>

@@ -60,6 +60,14 @@
         </dependency>
         <dependency>
             <groupId>com.materin.tech</groupId>
+            <artifactId>storage-minio</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
+            <artifactId>ota-component</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.materin.tech</groupId>
             <artifactId>network-coap</artifactId>
         </dependency>
         <dependency>

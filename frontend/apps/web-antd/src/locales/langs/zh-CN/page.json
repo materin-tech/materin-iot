@@ -47,5 +47,13 @@
     "rules": {
       "title": "告警规则"
     }
+  },
+  "ota": {
+    "packages": {
+      "title": "固件升级"
+    },
+    "tasks": {
+      "title": "升级任务"
+    }
   }
 }
