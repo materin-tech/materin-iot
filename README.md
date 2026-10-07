@@ -101,7 +101,7 @@ docker compose up -d          # 7 个服务（首次构建约 10 分钟）
 cd backend && mvn spring-boot:run -pl server
 
 # 前端
-cd frontend/vue-vben-admin && pnpm install && pnpm dev:antd   # 5666
+cd frontend && pnpm install && pnpm dev:antd   # 5666
 ```
 
 ## 无状态与水平扩展

@@ -210,7 +210,7 @@ services:
 
   frontend:
     build:
-      context: ../../frontend/vue-vben-admin
+      context: ../../frontend
       dockerfile: Dockerfile
     container_name: materin-frontend
     restart: unless-stopped

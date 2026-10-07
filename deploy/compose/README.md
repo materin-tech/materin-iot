@@ -12,7 +12,7 @@
 | emqx2 | emqx 5.8.6 | 11883 / 18084 | EMQX-2 开发者实例（核心架构，不可缺失）：第三方应用 AK/SK 接入，仅 open/ 命名空间，与 EMQX-1 通过规则+桥接双向转发 |
 | iotdb | apache/iotdb:2.0.11-standalone | 6667 / 18080 | 时序数据库（Apache 官方镜像，REST v2 暂未开启） |
 | backend | 本地构建（Dockerfile.backend） | 8080 | Spring Boot 单体，依赖 mysql/emqx healthy |
-| frontend | 本地构建（vue-vben-admin/Dockerfile） | 3080→80 | nginx 托管 vben 打包产物，/api/v1 反代 backend |
+| frontend | 本地构建（frontend/Dockerfile） | 3080→80 | nginx 托管 vben 打包产物，/api/v1 反代 backend |
 
 镜像走 daocloud / 1ms 镜像源（本机 Docker Hub 不可达），apache/iotdb 由 daemon 直连或代理拉取。
 

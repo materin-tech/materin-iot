@@ -1,9 +1,0 @@
-node_modules
-**/node_modules
-**/dist
-.turbo
-**/.turbo
-.git
-*.log
-cypress
-apps/backend-mock

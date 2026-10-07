@@ -103,7 +103,7 @@ Local frontend/backend development:
 cd backend && mvn spring-boot:run -pl server
 
 # Frontend
-cd frontend/vue-vben-admin && pnpm install && pnpm dev:antd   # 5666
+cd frontend && pnpm install && pnpm dev:antd   # 5666
 ```
 
 ## Stateless & Horizontal Scaling
