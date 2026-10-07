@@ -15,6 +15,13 @@ public class OtaTask extends BaseEntity {
 
     private String taskName;
 
+    /** product=按产品统一升级 device=按设备单独升级 */
+    private String scope;
+
+    private Long productId;
+
+    private String productName;
+
     /** 全量设备数 */
     private Integer deviceCount;
 

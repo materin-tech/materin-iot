@@ -7,7 +7,7 @@ import { Button, Input, message, Modal, Select } from 'ant-design-vue';
 
 import {
   createOtaTask, getOtaPackages, getOtaTaskDevices, getOtaTasks, getDeviceList,
-  OTA_STATUS_TEXT, retryOtaTaskDevice,
+  getProductList, OTA_STATUS_TEXT, retryOtaTaskDevice,
 } from '#/api';
 
 defineOptions({ name: 'OtaTasks' });
@@ -15,6 +15,7 @@ defineOptions({ name: 'OtaTasks' });
 const rows = ref<any[]>([]);
 const packages = ref<any[]>([]);
 const devices = ref<any[]>([]);
+const products = ref<any[]>([]);
 const addOpen = ref(false);
 const detailOpen = ref(false);
 const detailRows = ref<any[]>([]);
@@ -22,6 +23,8 @@ const detailTaskId = ref<number>();
 const form = reactive({
   deviceIds: [] as number[],
   packageName: '',
+  scope: 'device' as 'device' | 'product',
+  productId: undefined as number | undefined,
   taskName: '',
 });
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -37,13 +40,22 @@ async function load() {
 
 async function submit() {
   const pkg = packages.value.find((p) => p.name === form.packageName);
-  if (!pkg || form.deviceIds.length === 0) {
-    message.warning('请选择固件包并勾选设备');
+  if (!pkg) {
+    message.warning('请选择固件包');
     return;
   }
-  await createOtaTask({ deviceIds: form.deviceIds, packageId: Number(pkg.id), taskName: form.taskName || 'OTA 升级' });
+  if (form.scope === 'device' && form.deviceIds.length === 0) {
+    message.warning('请勾选升级设备（或切换为按产品统一升级）');
+    return;
+  }
+  await createOtaTask({
+    deviceIds: form.scope === 'device' ? form.deviceIds : [],
+    packageId: Number(pkg.id),
+    productId: form.scope === 'product' ? form.productId : undefined,
+    taskName: form.taskName || 'OTA 升级',
+  } as any);
   addOpen.value = false;
-  message.success('任务已创建并推送');
+  message.success('计划已创建并推送');
   await load();
 }
 
@@ -69,6 +81,8 @@ onMounted(async () => {
   ]);
   packages.value = (pk as any)?.items ?? [];
   devices.value = (dv as any)?.items ?? [];
+  const pr = await getProductList({ page: 1, pageSize: 200 });
+  products.value = (pr as any)?.items ?? [];
   timer = setInterval(load, 30_000);
 });
 onBeforeUnmount(() => {
@@ -79,7 +93,7 @@ onBeforeUnmount(() => {
 <template>
   <Page :title="$t('page.ota.tasks.title')">
     <div class="mb-4 flex items-center gap-3">
-      <Button type="primary" @click="addOpen = true">新建升级任务</Button>
+      <Button type="primary" @click="addOpen = true">新建升级计划</Button>
     </div>
     <div class="rounded-lg border">
       <table class="w-full text-sm">
@@ -93,7 +107,12 @@ onBeforeUnmount(() => {
         </thead>
         <tbody>
           <tr v-for="t in rows" :key="t.id" class="border-t">
-            <td class="px-4 py-2">{{ t.taskName }} (#{{ t.id }})</td>
+            <td class="px-4 py-2">
+              {{ t.taskName }} (#{{ t.id }})
+              <span class="text-muted-foreground ml-1 text-xs">
+                {{ t.scope === 'product' ? `按产品：${t.productName || t.productId}` : '按设备' }}
+              </span>
+            </td>
             <td class="px-4 py-2 tabular-nums">{{ t.deviceCount }}</td>
             <td class="px-4 py-2">{{ t.status === 1 ? '已完成' : t.status === 2 ? '已取消' : '进行中' }}</td>
             <td class="px-4 py-2"><Button size="small" @click="showDetail(t.id)">明细</Button></td>
@@ -129,12 +148,16 @@ onBeforeUnmount(() => {
       </table>
     </Modal>
 
-    <Modal v-model:open="addOpen" title="新建升级任务" @ok="submit">
+    <Modal v-model:open="addOpen" title="新建升级计划" @ok="submit">
       <div class="space-y-3">
         <Input v-model:value="form.taskName" placeholder="任务名称（可空）" />
         <Select v-model:value="form.packageName" class="w-full" placeholder="选择固件包" show-search
           :options="packages.map((p) => ({ label: `${p.name} v${p.version} (${p.productName})`, value: p.name }))" />
-        <Select v-model:value="form.deviceIds" class="w-full" placeholder="勾选升级设备" mode="multiple" show-search
+        <Select v-model:value="form.scope" class="w-full" placeholder="升级范围"
+          :options="[{ label: '按设备单独升级', value: 'device' }, { label: '按产品统一升级', value: 'product' }]" />
+        <Select v-if="form.scope === 'product'" v-model:value="form.productId" class="w-full" placeholder="选择产品（其下全部设备）" show-search
+          :options="products.map((p) => ({ label: p.name, value: Number(p.id) }))" />
+        <Select v-if="form.scope === 'device'" v-model:value="form.deviceIds" class="w-full" placeholder="勾选升级设备" mode="multiple" show-search
           :options="devices.map((d) => ({ label: `${d.name} (${d.deviceKey})`, value: Number(d.id) }))" />
       </div>
     </Modal>

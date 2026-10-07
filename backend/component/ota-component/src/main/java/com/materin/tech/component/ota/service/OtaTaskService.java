@@ -43,14 +43,33 @@ public class OtaTaskService {
     private final ObjectProvider<DeviceCredentialLookup> credentialLookup;
     private final ObjectProvider<CommandPublisher> publisher;
 
-    /** 创建任务并立即推送（scope = 显式设备列表）。 */
-    public OtaTask createTask(OtaTask task, List<Long> deviceIds) {
+    /**
+     * 创建任务并立即推送。
+     * scope=product：按产品统一升级（圈选该产品下全部设备）；
+     * scope=device：按设备单独升级（显式 deviceIds）。
+     */
+    public OtaTask createTask(OtaTask task, List<Long> deviceIds, Long productId) {
         OtaPackage pkg = packageMapper.selectOneById(task.getPackageId());
         if (pkg == null) {
             throw new com.materin.tech.common.exception.BizException(404, "固件包不存在");
         }
-        if (deviceIds == null || deviceIds.isEmpty()) {
-            throw new com.materin.tech.common.exception.BizException(400, "deviceIds 不能为空");
+        boolean byProduct = productId != null;
+        task.setScope(byProduct ? "product" : "device");
+        if (byProduct) {
+            task.setProductId(productId);
+            Device probe = deviceMapper.selectOneByQuery(
+                    QueryWrapper.create().eq("product_id", productId).limit(1));
+            task.setProductName(probe == null ? "" : probe.getProductName());
+            List<Device> devices = deviceMapper.selectListByQuery(
+                    QueryWrapper.create().eq("product_id", productId));
+            deviceIds = devices.stream().map(Device::getId).toList();
+            if (deviceIds.isEmpty()) {
+                throw new com.materin.tech.common.exception.BizException(400, "该产品下暂无设备");
+            }
+        } else {
+            if (deviceIds == null || deviceIds.isEmpty()) {
+                throw new com.materin.tech.common.exception.BizException(400, "deviceIds 不能为空");
+            }
         }
         task.setDeviceCount(deviceIds.size());
         if (task.getStatus() == null) {
@@ -76,7 +95,8 @@ public class OtaTaskService {
             taskDeviceMapper.insert(td);
             pushed += pushOne(td, pkg) ? 1 : 0;
         }
-        log.info("OTA 任务创建: id={}, pkg={}, 设备 {} 台", task.getId(), pkg.getId(), pushed);
+        log.info("OTA 任务创建: id={}, pkg={}, scope={}, 设备 {} 台",
+                task.getId(), pkg.getId(), task.getScope(), pushed);
         return task;
     }
 

@@ -50,10 +50,11 @@
   },
   "ota": {
     "packages": {
-      "title": "固件升级"
+      "title": "固件包"
     },
     "tasks": {
-      "title": "升级任务"
-    }
+      "title": "升级计划"
+    },
+    "title": "固件管理"
   }
 }

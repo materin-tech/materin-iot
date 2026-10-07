@@ -50,10 +50,11 @@
   },
   "ota": {
     "packages": {
-      "title": "Firmware"
+      "title": "Packages"
     },
     "tasks": {
-      "title": "OTA Tasks"
-    }
+      "title": "Plans"
+    },
+    "title": "Firmware"
   }
 }

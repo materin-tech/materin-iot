@@ -79,17 +79,19 @@ public class OtaController {
         return R.ok(taskService.list(page, pageSize));
     }
 
-    @Operation(summary = "创建升级任务并推送（body: {packageId, taskName, deviceIds:[...]}）")
+    @Operation(summary = "创建升级任务并推送（按产品统一：{packageId, productId}；按设备单独：{packageId, deviceIds}）")
     @PostMapping("/task")
     public R<OtaTask> createTask(@RequestBody Map<String, Object> body) {
         OtaTask task = new OtaTask();
         task.setPackageId(Long.valueOf(String.valueOf(body.get("packageId"))));
         task.setTaskName((String) body.getOrDefault("taskName", "OTA 升级"));
-        @SuppressWarnings("unchecked")
-        List<Number> ids = (List<Number>) body.get("deviceIds");
-        List<Long> deviceIds = ids == null ? List.of()
-                : ids.stream().map(Number::longValue).toList();
-        return R.ok(taskService.createTask(task, deviceIds));
+        List<Long> deviceIds = List.of();
+        if (body.get("deviceIds") instanceof List<?> ids) {
+            deviceIds = ids.stream().map(v -> Long.valueOf(String.valueOf(v))).toList();
+        }
+        Long productId = body.get("productId") == null
+                ? null : Long.valueOf(String.valueOf(body.get("productId")));
+        return R.ok(taskService.createTask(task, deviceIds, productId));
     }
 
     @Operation(summary = "任务设备明细（分页，含状态/进度）")
