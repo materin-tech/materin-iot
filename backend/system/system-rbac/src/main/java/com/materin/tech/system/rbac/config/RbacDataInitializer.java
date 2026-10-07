@@ -44,7 +44,7 @@ public class RbacDataInitializer implements ApplicationRunner {
         // 菜单数据由 Flyway 迁移负责（V2/V4）；这里只保证 admin 角色拥有全部菜单
         grantAllMenusToAdmin(adminRoleId);
         ensureOrgs();
-        log.info("RBAC 种子数据就绪（admin / 123456，首次登录将要求修改密码）");
+        log.info("RBAC 种子数据就绪（admin / Admin@123，首次登录将要求修改密码）");
     }
 
     private Long ensureAdmin() {
@@ -54,7 +54,7 @@ public class RbacDataInitializer implements ApplicationRunner {
         SysUser admin = new SysUser();
         admin.setUsername("admin");
         admin.setNickname("Admin");
-        admin.setPassword(encoder.encode("123456"));
+        admin.setPassword(encoder.encode("Admin@123"));
         // 等保三级：种子账号不设置 password_update_time，首次登录强制修改密码
         admin.setStatus(1);
         admin.setRemark("内置管理员");

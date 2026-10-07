@@ -26,7 +26,7 @@ multi-instance deployments.
 
 ## Secure Defaults
 
-- The `admin` default password `123456` is for first login only; the platform forces a password change on first login (MLPS requirement).
+- The `admin` default password `Admin@123` is for first login only; the platform forces a password change on first login (MLPS requirement).
 - Production deployments must set the environment variables `MATERIN_SECURITY_DATA_KEY` (the 32-byte AES key used to encrypt ID numbers) and `MATERIN_SECURITY_JWT_SECRET`, otherwise sensitive-data encryption and token signing fall back to insecure defaults.
 - Security parameters such as password complexity, expiry, and lockout threshold/duration can be adjusted online in the admin "Security Settings" page; changes take effect immediately.
 
@@ -84,13 +84,13 @@ docker compose up -d          # 7 services (first build takes ~10 minutes)
 ./smoke-test.sh               # 13/13 green means deployment succeeded
 ```
 
-> Note: the `admin` default password `123456` is for first login only; the platform forces a password change on first login (MLPS requirement).
+> Note: the `admin` default password `Admin@123` is for first login only; the platform forces a password change on first login (MLPS requirement).
 > Production deployments must set the environment variables `MATERIN_SECURITY_DATA_KEY` (the 32-byte AES key for ID numbers)
 > and `MATERIN_SECURITY_JWT_SECRET` (the JWT signing secret).
 
 | Entry Point | URL |
 |---|---|
-| Platform console | http://localhost:3080 (admin / 123456) |
+| Platform console | http://localhost:3080 (admin / Admin@123) |
 | Backend API | http://localhost:8080/api/v1/... |
 | knife4j docs | http://localhost:8080/doc.html |
 | EMQX dashboard (internal) | http://localhost:18083 (admin / public) |

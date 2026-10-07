@@ -4,7 +4,7 @@ set -u
 cd "$(dirname "$0")"
 # 管理员密码可配置：默认开发值；正式环境在 .env（不入库）设 ADMIN_PASSWORD
 [ -f .env ] && { source .env; }
-ADMIN_PASSWORD="${ADMIN_PASSWORD:-123456}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-Admin@123}"
 PASS=0; FAIL=0
 
 check() {

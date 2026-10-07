@@ -24,7 +24,7 @@
 
 ## 安全默认值
 
-- `admin` 默认密码 `123456` 仅用于首次登录，登录后平台会强制要求修改（等保要求）。
+- `admin` 默认密码 `Admin@123` 仅用于首次登录，登录后平台会强制要求修改（等保要求）。
 - 生产环境必须设置环境变量 `MATERIN_SECURITY_DATA_KEY`（证件号 AES 加密密钥，32 字节）与 `MATERIN_SECURITY_JWT_SECRET`，否则敏感数据加密与令牌签发将使用不安全的默认值。
 - 密码复杂度、有效期、登录失败锁定阈值/时长等安全参数均可在管理端「安全设置」页在线调整，修改即时生效。
 
@@ -82,13 +82,13 @@ docker compose up -d          # 7 个服务（首次构建约 10 分钟）
 ./smoke-test.sh               # 13/13 全绿即部署成功
 ```
 
-> 注意：`admin` 默认密码 `123456` 仅用于首次登录，登录后平台会强制要求修改（等保要求）。
+> 注意：`admin` 默认密码 `Admin@123` 仅用于首次登录，登录后平台会强制要求修改（等保要求）。
 > 生产环境必须设置环境变量 `MATERIN_SECURITY_DATA_KEY`（证件号 AES 加密密钥，32 字节）
 > 与 `MATERIN_SECURITY_JWT_SECRET`（JWT 签名密钥）。
 
 | 入口 | 地址 |
 |---|---|
-| 平台控制台 | http://localhost:3080 （admin / 123456） |
+| 平台控制台 | http://localhost:3080 （admin / Admin@123） |
 | 后端 API | http://localhost:8080/api/v1/... |
 | knife4j 文档 | http://localhost:8080/doc.html |
 | EMQX 管理台（内部） | http://localhost:18083 （admin / public） |
