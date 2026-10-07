@@ -1,6 +1,6 @@
 package com.materin.tech.system.rbac.config;
 
-import com.materin.tech.system.rbac.entity.SysDept;
+import com.materin.tech.system.rbac.entity.SysOrg;
 import com.materin.tech.system.rbac.entity.SysMenu;
 import com.materin.tech.system.rbac.entity.SysRole;
 import com.materin.tech.system.rbac.entity.SysRoleMenu;
@@ -30,7 +30,7 @@ public class RbacDataInitializer implements ApplicationRunner {
     private final SysMenuMapper sysMenuMapper;
     private final SysUserRoleMapper sysUserRoleMapper;
     private final SysRoleMenuMapper sysRoleMenuMapper;
-    private final com.materin.tech.system.rbac.mapper.SysDeptMapper sysDeptMapper;
+    private final com.materin.tech.system.rbac.mapper.SysOrgMapper sysOrgMapper;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
@@ -43,8 +43,8 @@ public class RbacDataInitializer implements ApplicationRunner {
             linkUserRole(adminId, adminRoleId);
         }
         ensureMenus(adminRoleId);
-        ensureDepts();
-        log.info("RBAC 种子数据就绪（admin / 123456）");
+        ensureOrgs();
+        log.info("RBAC 种子数据就绪（admin / 123456，首次登录将要求修改密码）");
     }
 
     private Long ensureAdmin() {
@@ -55,6 +55,7 @@ public class RbacDataInitializer implements ApplicationRunner {
         admin.setUsername("admin");
         admin.setNickname("Admin");
         admin.setPassword(encoder.encode("123456"));
+        // 等保三级：种子账号不设置 password_update_time，首次登录强制修改密码
         admin.setStatus(1);
         admin.setRemark("内置管理员");
         sysUserMapper.insert(admin);
@@ -101,7 +102,8 @@ public class RbacDataInitializer implements ApplicationRunner {
                 {"用户管理", "/system/user", "/system/user/index", "AC_100100", "mdi:account-box-multiple"},
                 {"角色管理", "/system/role", "/system/role/index", "AC_100110", "mdi:account-group"},
                 {"菜单管理", "/system/menu", "/system/menu/index", "AC_100120", "mdi:menu"},
-                {"部门管理", "/system/dept", "/system/dept/index", "AC_100010", "mdi:account-multiple"},
+                {"组织管理", "/system/org", "/system/org/index", "AC_100010", "mdi:account-multiple"},
+                {"安全设置", "/system/security", "/system/security/index", "AC_100130", "mdi:shield-check"},
         };
         for (int i = 0; i < children.length; i++) {
             SysMenu menu = new SysMenu();
@@ -128,24 +130,24 @@ public class RbacDataInitializer implements ApplicationRunner {
         }
     }
 
-    private void ensureDepts() {
-        if (sysDeptMapper.selectCountByQuery(QueryWrapper.create()) > 0) {
+    private void ensureOrgs() {
+        if (sysOrgMapper.selectCountByQuery(QueryWrapper.create()) > 0) {
             return;
         }
-        SysDept hq = dept("总部", 0L);
-        SysDept rd = dept("研发部", hq.getId());
-        SysDept mkt = dept("市场部", hq.getId());
-        dept("华东分部", 0L);
-        dept("产品组", rd.getId());
-        dept("销售组", mkt.getId());
+        SysOrg hq = org("总部", 0L);
+        SysOrg rd = org("研发部", hq.getId());
+        SysOrg mkt = org("市场部", hq.getId());
+        org("华东分部", 0L);
+        org("产品组", rd.getId());
+        org("销售组", mkt.getId());
     }
 
-    private SysDept dept(String name, Long pid) {
-        SysDept dept = new SysDept();
-        dept.setName(name);
-        dept.setPid(pid);
-        dept.setStatus(1);
-        sysDeptMapper.insert(dept);
-        return dept;
+    private SysOrg org(String name, Long pid) {
+        SysOrg org = new SysOrg();
+        org.setName(name);
+        org.setPid(pid);
+        org.setStatus(1);
+        sysOrgMapper.insert(org);
+        return org;
     }
 }

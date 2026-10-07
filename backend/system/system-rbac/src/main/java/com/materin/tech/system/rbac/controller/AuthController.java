@@ -2,6 +2,7 @@ package com.materin.tech.system.rbac.controller;
 
 import com.materin.tech.common.core.ApiVersions;
 import com.materin.tech.common.core.R;
+import com.materin.tech.system.rbac.dto.AuthDtos.ChangePasswordRequest;
 import com.materin.tech.system.rbac.dto.AuthDtos.LoginRequest;
 import com.materin.tech.system.rbac.dto.AuthDtos.LoginResponse;
 import com.materin.tech.system.rbac.dto.AuthDtos.UserInfoResponse;
@@ -102,6 +103,13 @@ public class AuthController {
         cookie.setPath(ApiVersions.V1_PREFIX + "/auth");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
+        return R.ok();
+    }
+
+    @Operation(summary = "修改本人密码", description = "权限：需登录（等保三级：验证原密码，新密码满足复杂度）")
+    @PostMapping("/user/password")
+    public R<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) {
+        authService.changeOwnPassword(current(httpRequest), request);
         return R.ok();
     }
 

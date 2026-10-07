@@ -5,7 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.Map;
 
-/** 系统管理 DTO：对齐前端 vben 精简版字段（name/deptId/status/remark/permissions）。 */
+/** 系统管理 DTO：对齐前端 vben 精简版字段（name/orgId/status/remark/permissions）。 */
+
+// @formatter:off
 public final class SystemDtos {
 
     private SystemDtos() {
@@ -14,9 +16,13 @@ public final class SystemDtos {
     @Schema(description = "用户创建/更新请求")
     public record UserUpsertRequest(
             @Schema(description = "用户名（同时作为登录名）") String name,
-            @Schema(description = "部门 ID") Long deptId,
+            @Schema(description = "密码（创建必填；更新留空表示不修改）") String password,
+            @Schema(description = "组织 ID") Long orgId,
             @Schema(description = "状态：1-启用 0-禁用") Integer status,
             @Schema(description = "备注") String remark,
+            @Schema(description = "实名手机号") String phone,
+            @Schema(description = "证件类型：ID_CARD-身份证 PASSPORT-护照 OTHER-其他") String idType,
+            @Schema(description = "证件号（明文传输，服务端 AES 加密落库；更新留空表示不修改）") String idNo,
             @Schema(description = "授权菜单 ID 集合（当前版本忽略）") List<Long> permissions) {
     }
 
@@ -25,8 +31,12 @@ public final class SystemDtos {
             @Schema(description = "用户 ID") Long id,
             @Schema(description = "名称（昵称）") String name,
             @Schema(description = "状态：1-启用 0-禁用") Integer status,
-            @Schema(description = "部门 ID") Long deptId,
+            @Schema(description = "组织 ID") Long orgId,
             @Schema(description = "备注") String remark,
+            @Schema(description = "实名手机号") String phone,
+            @Schema(description = "证件类型") String idType,
+            @Schema(description = "证件号（脱敏显示，如 110***********1234）") String idNoMasked,
+            @Schema(description = "密码最后修改时间（空表示首次登录需修改）") String passwordUpdateTime,
             @Schema(description = "创建时间（yyyy-MM-dd HH:mm:ss）") String createTime) {
     }
 
@@ -76,21 +86,26 @@ public final class SystemDtos {
             @Schema(description = "子菜单") List<MenuNode> children) {
     }
 
-    @Schema(description = "部门创建/更新请求")
-    public record DeptUpsertRequest(
-            @Schema(description = "部门名") String name,
-            @Schema(description = "父级部门 ID（根为空/0）") Long pid,
+    @Schema(description = "组织创建/更新请求")
+    public record OrgUpsertRequest(
+            @Schema(description = "组织名") String name,
+            @Schema(description = "父级组织 ID（根为空/0）") Long pid,
             @Schema(description = "状态：1-启用 0-禁用") Integer status,
             @Schema(description = "备注") String remark) {
     }
 
-    @Schema(description = "部门树节点")
-    public record DeptNode(
-            @Schema(description = "部门 ID") Long id,
-            @Schema(description = "父级部门 ID") Long pid,
-            @Schema(description = "部门名") String name,
+    @Schema(description = "组织树节点")
+    public record OrgNode(
+            @Schema(description = "组织 ID") Long id,
+            @Schema(description = "父级组织 ID") Long pid,
+            @Schema(description = "组织名") String name,
             @Schema(description = "状态：1-启用 0-禁用") Integer status,
             @Schema(description = "备注") String remark,
-            @Schema(description = "子部门") List<DeptNode> children) {
+            @Schema(description = "子组织") List<OrgNode> children) {
+    }
+
+    @Schema(description = "管理员重置用户密码请求")
+    public record ResetPasswordRequest(
+            @Schema(description = "新密码") String newPassword) {
     }
 }

@@ -3,6 +3,7 @@ package com.materin.tech.system.rbac.controller;
 import com.materin.tech.common.core.ApiVersions;
 import com.materin.tech.common.core.PageResult;
 import com.materin.tech.common.core.R;
+import com.materin.tech.system.rbac.dto.SystemDtos.ResetPasswordRequest;
 import com.materin.tech.system.rbac.dto.SystemDtos.UserItem;
 import com.materin.tech.system.rbac.dto.SystemDtos.UserUpsertRequest;
 import com.materin.tech.system.rbac.service.SysUserService;
@@ -36,10 +37,10 @@ public class SysUserController {
                                         @Parameter(description = "名称（模糊匹配）") @RequestParam(required = false) String name,
                                         @Parameter(description = "备注（模糊匹配）") @RequestParam(required = false) String remark,
                                         @Parameter(description = "状态：1-启用 0-禁用") @RequestParam(required = false) Integer status,
-                                        @Parameter(description = "部门 ID") @RequestParam(required = false) Long deptId,
+                                        @Parameter(description = "组织 ID") @RequestParam(required = false) Long orgId,
                                         @Parameter(description = "创建时间起") @RequestParam(required = false) String startTime,
                                         @Parameter(description = "创建时间止") @RequestParam(required = false) String endTime) {
-        return R.ok(sysUserService.list(page, pageSize, name, remark, status, deptId, startTime, endTime));
+        return R.ok(sysUserService.list(page, pageSize, name, remark, status, orgId, startTime, endTime));
     }
 
     @Operation(summary = "创建用户", description = "权限：需登录，功能权限码 AC_100100（用户管理）")
@@ -52,6 +53,21 @@ public class SysUserController {
     @PutMapping("/{id}")
     public R<UserItem> update(@Parameter(description = "资源 ID") @PathVariable Long id, @RequestBody UserUpsertRequest request) {
         return R.ok(sysUserService.update(id, request));
+    }
+
+    @Operation(summary = "管理员重置用户密码", description = "权限：需登录，功能权限码 AC_100100（用户管理）")
+    @PostMapping("/{id}/reset-password")
+    public R<Void> resetPassword(@Parameter(description = "资源 ID") @PathVariable Long id,
+                                 @jakarta.validation.Valid @RequestBody ResetPasswordRequest request) {
+        sysUserService.resetPassword(id, request.newPassword());
+        return R.ok();
+    }
+
+    @Operation(summary = "解锁账号", description = "权限：需登录，功能权限码 AC_100100（用户管理）")
+    @PostMapping("/{id}/unlock")
+    public R<Void> unlock(@Parameter(description = "资源 ID") @PathVariable Long id) {
+        sysUserService.unlock(id);
+        return R.ok();
     }
 
     @Operation(summary = "更新/删除用户", description = "权限：需登录，功能权限码 AC_100100（用户管理）")

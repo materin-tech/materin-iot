@@ -5,18 +5,15 @@ import com.mybatisflex.annotation.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-/** 部门（树形）。 */
+/** 系统参数（等保安全策略等运行时可调配置）。 */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@Table("sys_dept")
-public class SysDept extends BaseEntity {
+@Table("sys_config")
+public class SysConfig extends BaseEntity {
 
-    private String name;
+    private String configKey;
 
-    private Long pid;
-
-    /** 1 启用 / 0 禁用 */
-    private Integer status;
+    private String configValue;
 
     private String remark;
 }

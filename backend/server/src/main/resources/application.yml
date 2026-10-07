@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: materin-server
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # 存量库首启时打 baseline（跳过 V1 全量建表），新库走全量 V1
+    baseline-on-migrate: true
+    baseline-version: "1"
+    out-of-order: true
   autoconfigure:
     # knife4j 4.5.0 自动配置面向 springdoc 2.2，Boot 3.4 下排除（doc.html 静态 UI 不受影响）
     exclude: com.github.xiaoymin.knife4j.spring.configuration.Knife4jAutoConfiguration
@@ -48,6 +55,7 @@ materin:
       secret: ${MATERIN_SECURITY_JWT_SECRET:dev-only-materin-default-secret-change-me-32b!}
       access-expire-seconds: 7200
       refresh-expire-seconds: 604800
+    data-encrypt-key: ${MATERIN_SECURITY_DATA_KEY:dev-only-materin-data-key-32bytes!!}
   command:
     timeout-seconds: 10
     max-concurrent-waits: 100

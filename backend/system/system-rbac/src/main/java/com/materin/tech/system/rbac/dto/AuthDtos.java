@@ -23,7 +23,8 @@ public final class AuthDtos {
             @Schema(description = "登录名") String username,
             @Schema(description = "姓名/昵称") String realName,
             @Schema(description = "角色名列表") List<String> roles,
-            @Schema(description = "访问令牌（JWT），后续请求放 Authorization: Bearer 头") String accessToken) {
+            @Schema(description = "访问令牌（JWT），后续请求放 Authorization: Bearer 头") String accessToken,
+            @Schema(description = "密码状态：NORMAL-正常 EXPIRING-即将到期 EXPIRED-已过期需修改") String passwordStatus) {
     }
 
     @Schema(description = "当前用户信息（对齐前端 vben UserInfo）")
@@ -35,5 +36,11 @@ public final class AuthDtos {
             @Schema(description = "个人描述（暂为空）") String desc,
             @Schema(description = "登录后首页路径（暂为空）") String homePath,
             @Schema(description = "角色名列表") List<String> roles) {
+    }
+
+    @Schema(description = "修改本人密码请求")
+    public record ChangePasswordRequest(
+            @Schema(description = "原密码") @NotBlank String oldPassword,
+            @Schema(description = "新密码") @NotBlank String newPassword) {
     }
 }

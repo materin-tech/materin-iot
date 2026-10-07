@@ -21,26 +21,31 @@ public class TokenStateService {
 
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
+    /** 锁定阈值/时长来自 sys_config（等保三级：管理员可调），在 SecurityPolicyService 中定义 */
+    private final com.materin.tech.system.rbac.service.SecurityPolicyService securityPolicy;
 
-    /** 登录失败锁定的阈值与时长 */
-    private static final int MAX_FAILS = 5;
-    private static final Duration FAIL_LOCK = Duration.ofMinutes(10);
     private static final Duration REFRESH_TTL = Duration.ofDays(7);
 
     public boolean isLoginLocked(String username) {
         String value = redis.opsForValue().get(RedisKeys.AUTH_FAIL + username);
-        return value != null && Integer.parseInt(value) >= MAX_FAILS;
+        return value != null && Integer.parseInt(value) >= securityPolicy.lockoutMaxFails();
     }
 
     public void recordLoginFailure(String username) {
         Long count = redis.opsForValue().increment(RedisKeys.AUTH_FAIL + username);
         if (count != null && count == 1) {
-            redis.expire(RedisKeys.AUTH_FAIL + username, FAIL_LOCK);
+            redis.expire(RedisKeys.AUTH_FAIL + username,
+                    Duration.ofMinutes(securityPolicy.lockoutDurationMinutes()));
         }
     }
 
     public void clearLoginFailures(String username) {
         redis.delete(RedisKeys.AUTH_FAIL + username);
+    }
+
+    /** 管理员解锁：清空失败计数（等保三级要求提供解锁手段）。 */
+    public void unlockLogin(String username) {
+        clearLoginFailures(username);
     }
 
     /** 生成 opaque refreshToken 存入 Redis（替代 JWT refresh：服务端可随时吊销）。 */
