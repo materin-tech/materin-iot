@@ -52,6 +52,30 @@ services:
       - emqx-data:/opt/emqx/data
     environment:
       EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_ADMIN_PASSWORD:-public}
+      # 无状态引导：认证/授权全量委托后端 HTTP 回调（账号在平台 MySQL：
+      # 设备 deviceKey/secret、服务账号 materin-svc-*、开发者 AK/SK）。
+      # 数据卷被删除重建后，此处可完整恢复鉴权配置，无需手工进 Dashboard。
+      EMQX_AUTHENTICATION__1__ENABLE: "true"
+      EMQX_AUTHENTICATION__1__MECHANISM: password_based
+      EMQX_AUTHENTICATION__1__BACKEND: http
+      EMQX_AUTHENTICATION__1__METHOD: post
+      EMQX_AUTHENTICATION__1__URL: http://backend:8080/api/v1/mqtt/auth
+      EMQX_AUTHENTICATION__1__BODY: '{"username": "$${username}", "password": "$${password}"}'
+      EMQX_AUTHENTICATION__1__HEADERS__content-type: application/json
+      EMQX_AUTHENTICATION__1__CONNECT_TIMEOUT: 5s
+      EMQX_AUTHENTICATION__1__REQUEST_TIMEOUT: 5s
+      EMQX_AUTHENTICATION__1__POOL_SIZE: 8
+      # 未命中任何授权源时默认拒绝；授权同样回调后端（设备限自身 namespace）
+      EMQX_AUTHORIZATION__NO_MATCH: deny
+      EMQX_AUTHORIZATION__SOURCES__1__ENABLE: "true"
+      EMQX_AUTHORIZATION__SOURCES__1__TYPE: http
+      EMQX_AUTHORIZATION__SOURCES__1__METHOD: post
+      EMQX_AUTHORIZATION__SOURCES__1__URL: http://backend:8080/api/v1/mqtt/acl
+      EMQX_AUTHORIZATION__SOURCES__1__BODY: '{"username": "$${username}", "topic": "$${topic}", "action": "$${action}"}'
+      EMQX_AUTHORIZATION__SOURCES__1__HEADERS__content-type: application/json
+      EMQX_AUTHORIZATION__SOURCES__1__CONNECT_TIMEOUT: 5s
+      EMQX_AUTHORIZATION__SOURCES__1__REQUEST_TIMEOUT: 5s
+      EMQX_AUTHORIZATION__SOURCES__1__POOL_SIZE: 8
     healthcheck:
       test: ["CMD", "emqx", "ctl", "status"]
       interval: 15s
@@ -82,7 +106,10 @@ services:
       start_period: 120s
 
   emqx2:
-    # EMQX-2：第三方开发者接入（AK/SK 鉴权待接入，暂 allow_anonymous）
+    # EMQX-2（open broker）：第三方开发者接入（核心架构，不可缺失）。
+    # 开发者用 AK/SK（open_app.app_key/app_secret）连接，仅允许 open/ 命名空间；
+    # 鉴权/授权回调 open 专用接口（仅服务账号 + AK/SK，设备凭证拒绝），
+    # 账号全量在平台 MySQL，broker 无状态可随时重建。
     image: docker.m.daocloud.io/emqx/emqx:5.8.6
     container_name: materin-emqx2
     restart: unless-stopped
@@ -91,12 +118,56 @@ services:
       - "18084:18083"
     volumes:
       - emqx2-data:/opt/emqx/data
+    environment:
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX2_ADMIN_PASSWORD:-public}
+      EMQX_AUTHENTICATION__1__ENABLE: "true"
+      EMQX_AUTHENTICATION__1__MECHANISM: password_based
+      EMQX_AUTHENTICATION__1__BACKEND: http
+      EMQX_AUTHENTICATION__1__METHOD: post
+      EMQX_AUTHENTICATION__1__URL: http://backend:8080/api/v1/mqtt/open/auth
+      EMQX_AUTHENTICATION__1__BODY: '{"username": "$${username}", "password": "$${password}"}'
+      EMQX_AUTHENTICATION__1__HEADERS__content-type: application/json
+      EMQX_AUTHENTICATION__1__CONNECT_TIMEOUT: 5s
+      EMQX_AUTHENTICATION__1__REQUEST_TIMEOUT: 5s
+      EMQX_AUTHENTICATION__1__POOL_SIZE: 8
+      EMQX_AUTHORIZATION__NO_MATCH: deny
+      EMQX_AUTHORIZATION__SOURCES__1__ENABLE: "true"
+      EMQX_AUTHORIZATION__SOURCES__1__TYPE: http
+      EMQX_AUTHORIZATION__SOURCES__1__METHOD: post
+      EMQX_AUTHORIZATION__SOURCES__1__URL: http://backend:8080/api/v1/mqtt/open/acl
+      EMQX_AUTHORIZATION__SOURCES__1__BODY: '{"username": "$${username}", "topic": "$${topic}", "action": "$${action}"}'
+      EMQX_AUTHORIZATION__SOURCES__1__HEADERS__content-type: application/json
+      EMQX_AUTHORIZATION__SOURCES__1__CONNECT_TIMEOUT: 5s
+      EMQX_AUTHORIZATION__SOURCES__1__REQUEST_TIMEOUT: 5s
+      EMQX_AUTHORIZATION__SOURCES__1__POOL_SIZE: 8
     healthcheck:
       test: ["CMD", "emqx", "ctl", "status"]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  emqx-init:
+    # 一次性配置任务：等 emqx/emqx2/backend 全部 healthy 后，
+    # 幂等写入认证/授权（与 env 引导一致）+ 双向桥接（连接器/动作/规则）。
+    # docker compose up -d 全栈启动即自动配好 EMQX 全部内容，无需手工跑脚本。
+    image: docker.m.daocloud.io/curlimages/curl:8.11.0
+    container_name: materin-emqx-init
+    restart: on-failure:3
+    depends_on:
+      emqx:
+        condition: service_healthy
+      emqx2:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./emqx-configure.sh:/app/emqx-configure.sh:ro
+    entrypoint: ["sh", "/app/emqx-configure.sh"]
+    environment:
+      EMQX1_HOST: http://emqx:18083
+      EMQX2_HOST: http://emqx2:18083
+      BACKEND_URL: http://backend:8080
 
   backend:
     build:

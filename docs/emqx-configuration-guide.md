@@ -38,7 +38,7 @@ flowchart LR
 | 实例 | 容器 | 客户端端口 | 管理台 | 鉴权方式 |
 |---|---|---|---|---|
 | EMQX-1 | materin-emqx | 1883 | http://localhost:18083 | 设备：deviceKey + secret；服务账号：materin-svc-* |
-| EMQX-2 | materin-emqx2 | 11883 | http://localhost:18084 | 开发者应用：AK + SK（暂辅以 allow_anonymous 关闭态） |
+| EMQX-2 | materin-emqx2 | 11883 | http://localhost:18084 | 开发者应用：AK + SK（open 专用回调，设备凭证拒绝） |
 
 ## 2. 鉴权与授权（两个实例同构，回调 backend）
 
@@ -80,8 +80,15 @@ backend 不可用时连接被拒）。
 ![EMQX-2 客户端认证](images/emqx2-authentication.png)
 ![EMQX-2 客户端授权](images/emqx2-authorization.png)
 
-与 2.1/2.2 回调同一组 backend 接口，backend 按 username 类型分流：
-AK/SK 校验（open_app 表）+ `open/` 命名空间限定。
+回调 open broker 专用接口，**与 EMQX-1 隔离**：
+
+- 认证：`POST {BACKEND}/api/v1/mqtt/open/auth` —— 仅放行服务账号 + 开发者
+  AK/SK（open_app 表）；**设备凭证一律拒绝**（broker 职责隔离，设备只能走
+  EMQX-1）。
+- 授权：`POST {BACKEND}/api/v1/mqtt/open/acl` —— 服务账号全放行，开发者 AK
+  仅限 `open/` 命名空间。
+- 判定逻辑：`MqttAccessPolicy.authenticateOpen / authorizeOpen`（单测覆盖
+  `MqttAccessPolicyTest`）。
 
 ## 3. 消息互通（集成：连接器 + 动作 + 规则）
 
@@ -111,8 +118,11 @@ sequenceDiagram
 
 | 名称 | 所在实例 | 对端 | 凭证 |
 |---|---|---|---|
-| `conn_to_emqx2` | EMQX-1 | materin-emqx2:1883 | 匿名（EMQX-2 内部互通） |
+| `conn_to_emqx2` | EMQX-1 | materin-emqx2:1883 | 服务账号 `materin-svc-emqx2-bridge`（过 HTTP 认证） |
 | `conn_to_emqx1` | EMQX-2 | materin-emqx:1883 | 服务账号 `materin-svc-emqx2-bridge`（过 HTTP 认证） |
+
+> 等保改造后后端拒绝匿名 MQTT 连接（`MqttAccessPolicy.authenticate` 对空
+> username 返回 false），双向桥接统一使用服务账号（ACL 全放行）。
 
 > 5.8 注意：旧 `bridges` API 已不可用（incompatible_bridge_v1），
 > 必须用 `POST /api/v5/connectors` + `POST /api/v5/actions`。
@@ -143,19 +153,31 @@ sequenceDiagram
 > 踩坑记录：`regex_replace(subject, regex, replacement)` 的 subject 在第一个参数，
 > 写反会把 topic 改写成 `^open/`。
 
-## 4. 一键配置脚本
+## 4. 自动配置（compose 启动即生效）
+
+**`docker compose up -d` 会自动完成 EMQX 全部配置**：`emqx-init` 一次性服务
+在 emqx / emqx2 / backend 三者 healthy 后自动运行配置脚本（幂等，已存在的
+资源自动跳过），覆盖第 2、3 节的全部资源，结束时打印双实例 Sink 连接状态。
+执行日志：`docker logs materin-emqx-init`；失败自动重试 3 次（restart:
+on-failure:3）。
+
+也可手工执行同一脚本（宿主机或容器内均可，POSIX sh + curl，无额外依赖）：
 
 ```bash
 cd deploy/compose
-./emqx-configure.sh        # 幂等：已存在的资源自动跳过，末尾打印 sink 状态
+EMQX1_HOST=http://localhost:18083 EMQX2_HOST=http://localhost:18084 \
+BACKEND_URL=http://localhost:8080 ./emqx-configure.sh
 ```
 
 环境变量（均可覆盖）：`EMQX1_HOST` / `EMQX2_HOST` / `EMQX_DASH_USER` /
-`EMQX_ADMIN_PASSWORD` / `MATERIN_MQTT_SERVICE_USERNAME` /
-`MATERIN_MQTT_SERVICE_PASSWORD` / `BACKEND_URL`。
+`EMQX_ADMIN_PASSWORD` / `EMQX2_ADMIN_PASSWORD` /
+`MATERIN_MQTT_SERVICE_USERNAME` / `MATERIN_MQTT_SERVICE_PASSWORD` /
+`BACKEND_URL`。
 
-脚本与本文配置一一对应，覆盖第 2、3 节的全部资源；执行后自动打印
-双实例 Sink 连接状态。
+> 注意：EMQX 的 `environment` 引导（env 方式声明认证/授权）只在容器首次创建
+> 时生效；卷已存在时以卷内配置为准。改动 emqx2 回调地址等 env 后需
+> `docker compose rm -sf emqx2 && docker volume rm materin_emqx2-data` 再 up，
+> emqx-init 会自动重建其余资源。
 
 ## 5. 验证清单
 

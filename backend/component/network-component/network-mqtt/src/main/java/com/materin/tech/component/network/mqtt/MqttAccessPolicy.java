@@ -113,4 +113,57 @@ public class MqttAccessPolicy {
     public boolean authorize(Map<String, String> body) {
         return authorize(body.get("username"), body.get("topic"), body.get("action"));
     }
+
+    // ===== open broker（EMQX-2，第三方对接）专用判定：仅服务账号 + 开发者 AK/SK，设备凭证一律拒绝 =====
+
+    /**
+     * open broker 认证：username=AK（或服务账号）。
+     * 与 {@link #authenticate} 的关键差异：不回落到设备凭证分支。
+     */
+    public boolean authenticateOpen(String username, String password) {
+        if (username == null || password == null) {
+            return false;
+        }
+        if (username.startsWith(SERVICE_PREFIX)) {
+            return properties.getServicePassword().equals(password);
+        }
+        OpenAppAuthChecker appChecker = appServiceProvider.getIfAvailable();
+        if (appChecker == null) {
+            return false;
+        }
+        if (!appChecker.existsByAppKey(username)) {
+            log.warn("MQTT open 认证失败（AK 不存在）: appKey={}", username);
+            return false;
+        }
+        boolean ok = appChecker.matches(username, password);
+        if (!ok) {
+            log.warn("MQTT open 认证失败: appKey={}", username);
+        }
+        return ok;
+    }
+
+    /**
+     * open broker 授权：服务账号全放行，开发者 AK 仅限 open/ 命名空间。
+     * 与 {@link #authorize} 的关键差异：设备 namespace 分支不存在。
+     */
+    public boolean authorizeOpen(String username, String topic, String action) {
+        if (username == null || topic == null) {
+            return false;
+        }
+        if (username.startsWith(SERVICE_PREFIX)) {
+            return true;
+        }
+        OpenAppAuthChecker appChecker = appServiceProvider.getIfAvailable();
+        return appChecker != null && appChecker.existsByAppKey(username) && topic.startsWith("open/");
+    }
+
+    /** 便捷重载：EMQX 适配层直接透传 Map body。 */
+    public boolean authenticateOpen(Map<String, String> body) {
+        return authenticateOpen(body.get("username"), body.get("password"));
+    }
+
+    /** 便捷重载：EMQX 适配层直接透传 Map body。 */
+    public boolean authorizeOpen(Map<String, String> body) {
+        return authorizeOpen(body.get("username"), body.get("topic"), body.get("action"));
+    }
 }

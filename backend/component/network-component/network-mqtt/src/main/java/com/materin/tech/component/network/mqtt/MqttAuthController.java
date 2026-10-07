@@ -30,4 +30,16 @@ public class MqttAuthController {
     public Map<String, String> acl(@RequestBody Map<String, String> body) {
         return Map.of("result", policy.authorize(body) ? "allow" : "deny");
     }
+
+    /** open broker（EMQX-2）认证回调：仅服务账号 + 开发者 AK/SK，设备凭证拒绝。 */
+    @PostMapping("/mqtt/open/auth")
+    public Map<String, String> openAuth(@RequestBody Map<String, String> body) {
+        return Map.of("result", policy.authenticateOpen(body) ? "allow" : "deny");
+    }
+
+    /** open broker（EMQX-2）授权回调：AK 仅限 open/ 命名空间。 */
+    @PostMapping("/mqtt/open/acl")
+    public Map<String, String> openAcl(@RequestBody Map<String, String> body) {
+        return Map.of("result", policy.authorizeOpen(body) ? "allow" : "deny");
+    }
 }
