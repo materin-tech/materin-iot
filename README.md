@@ -1,3 +1,5 @@
+[English](README.en.md) | [简体中文](README.md)
+
 # 格物 (Materin) · 开源 IoT 平台
 
 物模型驱动的通用 IoT 平台（第一版）。前后端 + 部署编排单仓库交付，
@@ -7,7 +9,10 @@
 
 | 能力 | 说明 |
 |---|---|
-| RBAC 与认证 | 用户/角色/菜单/部门，JWT 登录态外置 Redis（可吊销、轮换、失败限流），权限码控制 |
+| RBAC 与认证 | 用户/角色/菜单/组织（原部门，已通用化），JWT 登录态外置 Redis（可吊销、轮换、失败限流），权限码控制 |
+| 安全合规（等保三级） | 密码复杂度策略、密码有效期与到期提醒/强制修改、登录失败锁定（阈值/时长可配置）、账号解锁、管理员重置密码、实名手机号与证件号（AES-GCM 加密存储、列表脱敏显示）、首次登录强制修改密码 |
+| 配置管理 | 安全参数运行时可调（sys_config 表），管理端「安全设置」页在线修改即时生效 |
+| 数据库迁移 | Flyway 版本化 DDL（backend/server/src/main/resources/db/migration/），存量库自动 baseline，新库全量创建 |
 | 产品管理 | productKey 自动生成、品类/协议/发布状态、设备接入计数 |
 | 物模型 | 属性/方法/事件三要素 JSON 存储，版本与发布状态管理 |
 | 设备管理 | 设备密钥一机一密、批量导入、在线状态（滑动 TTL）、最近在线 |
@@ -16,6 +21,12 @@
 | 时序存储 | Apache IoTDB 2.0（standalone） |
 | 开发者中心 | 应用（AK/SK）管理、swagger 接口清单同步、接口勾选授权、接入指引 |
 | API 文档 | knife4j（`/doc.html`），OpenAPI v3 全量接口/参数/出入参/权限说明 |
+
+## 安全默认值
+
+- `admin` 默认密码 `123456` 仅用于首次登录，登录后平台会强制要求修改（等保要求）。
+- 生产环境必须设置环境变量 `MATERIN_SECURITY_DATA_KEY`（证件号 AES 加密密钥，32 字节）与 `MATERIN_SECURITY_JWT_SECRET`，否则敏感数据加密与令牌签发将使用不安全的默认值。
+- 密码复杂度、有效期、登录失败锁定阈值/时长等安全参数均可在管理端「安全设置」页在线调整，修改即时生效。
 
 ## MQTT Topic 规范
 
@@ -37,9 +48,10 @@
 materin-iot/
 ├── backend/                  # 纯 Spring Boot 模块化单体（Java 21，无 Spring Cloud）
 │   ├── server/               # 启动入口：装配全部模块，API 统一前缀 /api/v1
+│   │   └── src/main/resources/db/migration/  # Flyway DDL 版本化迁移
 │   ├── common/               # 共享内核：R/异常/分页、Redis keys、跨模块 SPI、Topic 常量
 │   ├── system/               # 系统板块
-│   │   ├── system-rbac/      #   用户/角色/菜单/部门 + JWT 认证
+│   │   ├── system-rbac/      #   用户/角色/菜单/组织 + JWT 认证 + 等保安全策略
 │   │   └── system-openapi/   #   开发者中心：应用(AK/SK)、接口清单、接口授权
 │   └── component/            # 功能组件板块
 │       ├── device-component/ #   设备/告警/规则/命令下发
@@ -47,14 +59,14 @@ materin-iot/
 │       └── network-component/#   MQTT 接入（EMQX 鉴权回调 + 共享订阅消费）、CoAP（预留）
 ├── frontend/                 # vben v5 web-antd 精简版（开发者中心等全部页面）
 ├── deploy/compose/           # 单机部署编排 + 冒烟脚本 + EMQX 集成配置
-└── docs/                     # MQTT 设计文档
+└── docs/                     # EMQX 配置手册、MQTT 设计文档（backend/docs/）
 ```
 
 ## 技术栈
 
 | 层 | 选型 |
 |---|---|
-| 后端 | Java 21 + Spring Boot 3.4 + MyBatis-Flex + MySQL 8.4 + Redis 7.4 |
+| 后端 | Java 21 + Spring Boot 3.4 + MyBatis-Flex + Flyway + MySQL 8.4 + Redis 7.4 |
 | MQTT | EMQX 5.8 双实例（内部 / 开发者），HTTP 认证与授权回调 |
 | 时序 | Apache IoTDB 2.0（standalone） |
 | 前端 | Vue 3 + TypeScript + Vite + Ant Design Vue（vben v5） |
@@ -69,6 +81,10 @@ cp .env.example .env
 docker compose up -d          # 7 个服务（首次构建约 10 分钟）
 ./smoke-test.sh               # 13/13 全绿即部署成功
 ```
+
+> 注意：`admin` 默认密码 `123456` 仅用于首次登录，登录后平台会强制要求修改（等保要求）。
+> 生产环境必须设置环境变量 `MATERIN_SECURITY_DATA_KEY`（证件号 AES 加密密钥，32 字节）
+> 与 `MATERIN_SECURITY_JWT_SECRET`（JWT 签名密钥）。
 
 | 入口 | 地址 |
 |---|---|
