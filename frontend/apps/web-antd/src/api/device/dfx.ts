@@ -36,6 +36,38 @@ export namespace DfxApi {
     components: DfxAccessHealth[];
     pipeline: Record<string, { count: number; lastIngestAt: number }>;
   }
+  export interface DfxMetricConfig {
+    id?: number;
+    metric: string;
+    name: string;
+    unit?: string;
+    dataType?: string;
+    description?: string;
+  }
+  export interface DfxChartMetric {
+    key: string;
+    name: string;
+  }
+  export interface DfxChartConfig {
+    title: string;
+    type?: 'line' | 'bar';
+    unit?: string;
+    yMax?: number;
+    agg?: string;
+    interval?: number;
+    metrics: DfxChartMetric[];
+  }
+  export interface DfxDashboardConfig {
+    charts: DfxChartConfig[];
+  }
+  export interface DfxDashboard {
+    id?: number;
+    productId: number;
+    productName?: string;
+    name: string;
+    configJson: string;
+    remark?: string;
+  }
   export interface DfxHistoryPoint {
     time: number;
     [key: string]: number | string | null;
@@ -68,9 +100,21 @@ async function createDfxRule(data: Omit<DfxApi.DfxRule, 'id'>) {
 async function deleteDfxRule(id: number) {
   return requestClient.delete(`/device/dfx/rule/${id}`);
 }
+async function getDfxMetricList() {
+  return requestClient.get<DfxApi.DfxMetricConfig[]>('/device/dfx/metric/list');
+}
+async function saveDfxMetric(data: DfxApi.DfxMetricConfig) {
+  return requestClient.post('/device/dfx/metric', data);
+}
+async function getDfxDashboards(productId: number) {
+  return requestClient.get<DfxApi.DfxDashboard[]>('/device/dfx/dashboard/list', { params: { productId } });
+}
+async function saveDfxDashboard(data: Partial<DfxApi.DfxDashboard>) {
+  return requestClient.post('/device/dfx/dashboard', data);
+}
 async function getDfxHealth() {
   return requestClient.get<DfxApi.DfxHealthResponse>('/device/dfx/health');
 }
-export { getDfxHealth, createDfxRule, createDfxTarget, deleteDfxRule, deleteDfxTarget,
+export { getDfxHealth, getDfxMetricList, saveDfxMetric, getDfxDashboards, saveDfxDashboard, createDfxRule, createDfxTarget, deleteDfxRule, deleteDfxTarget,
   getDfxHistory, getDfxLatest, getDfxRuleList, getDfxTargetList,
 };

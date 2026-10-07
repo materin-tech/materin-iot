@@ -1,0 +1,25 @@
+{
+  "dfx": {
+    "title": "DFX监控",
+    "common": {
+      "refresh": "刷新"
+    },
+    "components": {
+      "title": "组件状态",
+      "pipeline": "管道统计",
+      "lastIngest": "最近接入"
+    },
+    "metrics": {
+      "title": "监控指标",
+      "pickProduct": "选择产品",
+      "pickDevice": "选择设备",
+      "editLayout": "编辑布局",
+      "saveLayout": "保存布局",
+      "addChart": "添加图表",
+      "noData": "暂无数据（设备上报 DFX 指标后展示）"
+    },
+    "rules": {
+      "title": "告警规则"
+    }
+  }
+}
