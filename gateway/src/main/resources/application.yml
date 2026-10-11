@@ -1,0 +1,90 @@
+# Materin 边缘网关（materin-gateway）
+#
+# 平台连接：网关以一台 GATEWAY 设备凭证接入平台 EMQX（username=deviceKey, password=secret）。
+# 所有字段均可经环境变量覆盖，例如：
+#   MATERIN_GATEWAY_PLATFORM_HOST / MATERIN_GATEWAY_PLATFORM_PORT
+#   MATERIN_GATEWAY_PLATFORM_DEVICEKEY / MATERIN_GATEWAY_PLATFORM_SECRET
+#   MATERIN_GATEWAY_REPORT_INTERVAL_MS
+#
+server:
+  port: 8090
+
+spring:
+  application:
+    name: materin-gateway
+
+materin:
+  gateway:
+    # ---- 平台连接 ----
+    platform:
+      host: 127.0.0.1            # 平台 EMQX 地址
+      port: 1883                 # 平台 EMQX 端口
+      device-key: gw-01          # 网关设备的 deviceKey（必填）
+      secret: change-me          # 网关设备密钥（必填）
+      # client-id: gw-01-client  # 缺省复用 device-key
+      # 网关只订阅自己的下行主题：materin/gateway/downlink/{device-key}
+
+    # 网关自身遥测上报间隔（毫秒）
+    report-interval-ms: 30000
+
+    # ---- connector 列表（按 type 分发实例化）----
+    connectors: []
+
+    # connectors 配置示例（复制到 connectors: 下按需裁剪）：
+    #
+    # 1) demo：虚拟温湿度子设备，周期生成随机遥测
+    # - id: demo-1
+    #   type: demo
+    #   interval-ms: 10000          # 遥测周期
+    #   devices:
+    #     - device-key: sensor-01   # 子设备 deviceKey
+    #       name: 温湿度传感器 01
+    #       product-key: pk-sensor   # 可选：子设备归属独立产品
+    #     - device-key: sensor-02
+    #       name: 温湿度传感器 02
+    #
+    # 2) mqtt-bridge：桥接另一台 MQTT broker
+    # - id: bridge-1
+    #   type: mqtt-bridge
+    #   broker-url: tcp://127.0.0.1:1884
+    #   client-id: edge-bridge-1    # 可选，缺省 materin-bridge-<id>
+    #   username: user              # 可选
+    #   password: pass              # 可选
+    #   mappings:
+    #     - topic: site1/+/data     # 子 broker topic 过滤器
+    #       device-index: 1         # topic 第 1 段（0 起）作为子设备 deviceKey
+    #       command-topic: site1/{device}/cmd   # 可选：下行命令主题模板，{device} 替换为 deviceKey
+    #       product-key: pk-bridge  # 可选：子设备归属独立产品
+    #
+    # 3) modbus-tcp：Modbus TCP 主站轮询采集
+    # - id: modbus-1
+    #   type: modbus-tcp
+    #   slaves:
+    #     - host: 192.168.1.100     # 从站地址
+    #       port: 502               # 缺省 502
+    #       unit-id: 1              # 从站单元号，缺省 1
+    #       device-key: modbus-plc-01   # 该从站映射的平台子设备
+    #       poll-period-ms: 1000    # 轮询周期，缺省 1000
+    #       registers:
+    #         - name: temp                  # 遥测键（写命令也按 name 定位）
+    #           address: 0                  # 寄存器地址
+    #           function-code: readHoldingRegisters   # readHoldingRegisters | readInputRegisters | readCoils
+    #           data-type: int16            # int16 | uint16 | int32 | float32
+    #           scale: 0.1                  # 可选缩放，缺省 1.0
+    #         - { name: energy, address: 10, function-code: readInputRegisters, data-type: float32 }
+    #
+    # 4) opcua：OPC-UA 节点轮询采集
+    # - id: opcua-1
+    #   type: opcua
+    #   endpoint-url: opc.tcp://127.0.0.1:4840
+    #   device-key: opcua-device-01   # 缺省用 id
+    #   poll-period-ms: 5000          # 缺省 5000
+    #   nodes:
+    #     - { node-id: "ns=2;s=Demo.Static.Double", name: temperature }
+    #     - { node-id: "ns=2;i=1234", name: running }
+    #
+    # 下行命令示例（平台下发到 materin/gateway/downlink 的 data 字段）：
+    #   demo:       {"set": {"temp": 25}}
+    #   modbus-tcp: {"writeRegister": {"name": "setpoint", "value": 100}}
+    #               {"writeCoil": {"name": "pump", "value": true}}
+    #   opcua:      {"writeValue": {"name": "temperature", "value": 26.5}}

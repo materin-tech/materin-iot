@@ -1,0 +1,10 @@
+# 测试专用 override：宿主 3306/6379/1883 等端口被其它项目占用时使用。
+# 用法：
+#   docker compose -f deploy/compose/docker-compose.yml \
+#     -f deploy/compose/docker-compose.test-override.yml up -d
+# 说明：容器网络内互通不依赖宿主端口映射；JMeter/Playwright 容器直接走服务名访问。
+services:
+  mysql:
+    ports: !reset []
+  redis:
+    ports: !reset []

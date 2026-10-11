@@ -1,0 +1,3 @@
+com/materin/gateway/core/ReplyTopicCacheTest.class
+com/materin/gateway/mqtt/PendingMessageBufferTest.class
+com/materin/gateway/connector/modbus/ModbusValueCodecTest.class
