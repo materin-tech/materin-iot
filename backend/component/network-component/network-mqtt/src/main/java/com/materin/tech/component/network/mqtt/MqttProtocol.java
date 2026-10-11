@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.component.network.mqtt;
 
 import com.hivemq.client.mqtt.MqttClient;
@@ -25,11 +48,14 @@ public class MqttProtocol implements NetworkProtocol, com.materin.tech.common.sp
 
     private final MqttProperties properties;
     private final TelemetryHandler telemetryHandler;
+    private final GatewayHandler gatewayHandler;
     private Mqtt3AsyncClient client;
 
-    public MqttProtocol(MqttProperties properties, TelemetryHandler telemetryHandler) {
+    public MqttProtocol(MqttProperties properties, TelemetryHandler telemetryHandler,
+                        GatewayHandler gatewayHandler) {
         this.properties = properties;
         this.telemetryHandler = telemetryHandler;
+        this.gatewayHandler = gatewayHandler;
     }
 
     @Override
@@ -68,6 +94,7 @@ public class MqttProtocol implements NetworkProtocol, com.materin.tech.common.sp
         subscribeShared(MqttTopics.WILDCARD_REPORT);
         subscribeShared(MqttTopics.WILDCARD_EVENT);
         subscribeShared(MqttTopics.WILDCARD_REPLY);
+        subscribeShared(MqttTopics.WILDCARD_GATEWAY);
     }
 
     private void subscribeShared(String topic) {
@@ -77,10 +104,20 @@ public class MqttProtocol implements NetworkProtocol, com.materin.tech.common.sp
                 .qos(com.hivemq.client.mqtt.datatypes.MqttQos.AT_LEAST_ONCE)
                 .callback(publish -> {
                     String topicName = publish.getTopic().toString();
-                    String[] parsed = MqttTopics.parse(topicName);
-                    if (parsed != null) {
-                        telemetryHandler.handle(parsed[0], parsed[1], parsed[2],
-                                publish.getPayloadAsBytes());
+                    // 共享订阅报文无独立 trace 头：回调线程入口生成，报文自带 traceId 时由处理器覆盖
+                    com.materin.tech.common.core.TraceIds.setMdc(null);
+                    try {
+                        if (MqttTopics.isGatewayTopic(topicName)) {
+                            gatewayHandler.handle(topicName, publish.getPayloadAsBytes());
+                            return;
+                        }
+                        String[] parsed = MqttTopics.parse(topicName);
+                        if (parsed != null) {
+                            telemetryHandler.handle(parsed[0], parsed[1], parsed[2],
+                                    publish.getPayloadAsBytes());
+                        }
+                    } finally {
+                        com.materin.tech.common.core.TraceIds.clearMdc();
                     }
                 })
                 .send()

@@ -17,7 +17,6 @@
 
     <modules>
         <module>timeseries-component</module>
-        <module>iotdb-component</module>
         <module>device-component</module>
         <module>dfx-component</module>
         <module>storage-component</module>

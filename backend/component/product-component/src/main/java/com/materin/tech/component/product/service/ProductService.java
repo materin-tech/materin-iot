@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.component.product.service;
 
 import com.materin.tech.common.core.PageResult;
@@ -75,6 +98,18 @@ public class ProductService {
         apply(product, request);
         product.setProductKey(key);
         product.setDeviceCount(0);
+        // V14 node_type NOT NULL：创建缺省 DIRECT（列有 DEFAULT，但 MyBatis-Flex insert 显式带 NULL）
+        if (!StringUtils.hasText(product.getNodeType())) {
+            product.setNodeType("DIRECT");
+        }
+        // status NOT NULL：缺省 0-开发中（同上，insert 显式带 NULL 会绕过列 DEFAULT）
+        if (product.getStatus() == null) {
+            product.setStatus(0);
+        }
+        // source NOT NULL：缺省 custom
+        if (!StringUtils.hasText(product.getSource())) {
+            product.setSource("custom");
+        }
         productMapper.insert(product);
         return toItem(product);
     }
@@ -143,6 +178,12 @@ public class ProductService {
         if (request.source() != null) {
             product.setSource(request.source());
         }
+        if (StringUtils.hasText(request.nodeType())) {
+            if (!List.of("DIRECT", "GATEWAY", "CHILD").contains(request.nodeType())) {
+                throw BizException.badRequest("非法节点形态: " + request.nodeType());
+            }
+            product.setNodeType(request.nodeType());
+        }
         if (request.remark() != null) {
             product.setRemark(request.remark());
         }
@@ -166,6 +207,7 @@ public class ProductService {
                 : product.getCreateTime().format(TS);
         return new ProductItem(product.getId(), product.getName(), product.getProductKey(),
                 product.getCategory(), product.getProtocol(), product.getStatus(),
-                product.getDeviceCount(), product.getSource(), product.getRemark(), createTime);
+                product.getDeviceCount(), product.getSource(), product.getRemark(),
+                product.getNodeType() == null ? "DIRECT" : product.getNodeType(), createTime);
     }
 }

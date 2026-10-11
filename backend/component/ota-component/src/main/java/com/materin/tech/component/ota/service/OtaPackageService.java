@@ -1,7 +1,31 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.component.ota.service;
 
 import com.materin.tech.component.ota.entity.OtaPackage;
 import com.materin.tech.component.ota.mapper.OtaPackageMapper;
+import com.materin.tech.common.spi.FileRegistry;
 import com.materin.tech.component.storage.StorageClient;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -29,6 +53,7 @@ public class OtaPackageService {
 
     private final OtaPackageMapper mapper;
     private final ObjectProvider<StorageClient> storage;
+    private final ObjectProvider<FileRegistry> fileRegistry;
     private final com.materin.tech.component.storage.StorageProperties storageProperties;
 
     public Page<OtaPackage> list(long page, long pageSize, Long productId, String name) {
@@ -85,6 +110,12 @@ public class OtaPackageService {
                 meta.setStatus(1);
             }
             mapper.insert(meta);
+            // 文件登记（文件管理统一可见）：失败由实现方兜底，不阻断上传
+            FileRegistry registry = fileRegistry.getIfAvailable();
+            if (registry != null) {
+                registry.register(storageProperties.getBucket(), key,
+                        file.getOriginalFilename(), file.getContentType(), size, "ota", meta.getId());
+            }
             return meta;
         } catch (com.materin.tech.common.exception.BizException e) {
             throw e;
@@ -113,6 +144,10 @@ public class OtaPackageService {
             } catch (Exception e) {
                 log.warn("对象存储删除失败（记录仍删除）: {}", e.getMessage());
             }
+        }
+        FileRegistry registry = fileRegistry.getIfAvailable();
+        if (registry != null) {
+            registry.removeByBiz("ota", id);
         }
         mapper.deleteById(id);
     }

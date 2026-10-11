@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.component.network.mqtt;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -52,11 +75,17 @@ public class TelemetryHandler {
 
     /**
      * report：Redis 最新值 + 时序库历史（两者均 best-effort，时序库失败不影响上行链路）。
+     * traceId 为保留键：提取进 MDC 后从遥测数据中剔除，避免污染 Redis HASH 与时序列。
      */
     private void handleReport(String deviceKey, byte[] payload) {
         Map<String, Object> values = parseMap(payload);
         if (values.isEmpty()) {
             return;
+        }
+        Object traceId = values.remove(com.materin.tech.common.core.TraceIds.PAYLOAD_KEY);
+        if (traceId != null) {
+            org.slf4j.MDC.put(com.materin.tech.common.core.TraceIds.MDC_KEY,
+                    com.materin.tech.common.core.TraceIds.normalize(String.valueOf(traceId)));
         }
         storeTelemetry(deviceKey, values);
         TelemetrySink sink = telemetrySink.getIfAvailable();
@@ -80,7 +109,8 @@ public class TelemetryHandler {
         }
     }
 
-    private void touchOnline(String deviceKey) {
+    /** 刷新设备在线 TTL（Redis 滑动标记 + DB 节流落库），网关子设备上下线复用。 */
+    public void touchOnline(String deviceKey) {
         redis.opsForValue().set(RedisKeys.DEVICE_ONLINE + deviceKey, "1",
                 Duration.ofSeconds(properties.getOnlineTtlSeconds()));
         lookupDeviceId(deviceKey).ifPresent(deviceId ->
@@ -95,7 +125,8 @@ public class TelemetryHandler {
         return lookup.findByKey(deviceKey).map(DeviceCredentialLookup.DeviceCredential::deviceId);
     }
 
-    private void storeTelemetry(String deviceKey, Map<String, Object> values) {
+    /** 遥测/属性最新值写入 Redis HASH（网关子设备属性与遥测共用）。 */
+    public void storeTelemetry(String deviceKey, Map<String, Object> values) {
         try {
             String key = RedisKeys.DEVICE_TELEMETRY + deviceKey;
             values.forEach((k, v) -> redis.opsForHash().put(key, k, String.valueOf(v)));
@@ -125,6 +156,12 @@ public class TelemetryHandler {
             if (requestId == null) {
                 log.info("指令应答(无 requestId): {}", textual(payload));
                 return;
+            }
+            // 应答报文携带下行命令注入的 traceId：覆盖 MDC，回执落库（device_command_log）由此关联原链路
+            Object traceId = body.get(com.materin.tech.common.core.TraceIds.PAYLOAD_KEY);
+            if (traceId != null) {
+                org.slf4j.MDC.put(com.materin.tech.common.core.TraceIds.MDC_KEY,
+                        com.materin.tech.common.core.TraceIds.normalize(String.valueOf(traceId)));
             }
             com.materin.tech.common.spi.CommandReplySink sink = replySink.getIfAvailable();
             if (sink == null) {

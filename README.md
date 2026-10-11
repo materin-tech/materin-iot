@@ -52,14 +52,23 @@ materin-iot/
 │   ├── common/               # 共享内核：R/异常/分页、Redis keys、跨模块 SPI、Topic 常量
 │   ├── system/               # 系统板块
 │   │   ├── system-rbac/      #   用户/角色/菜单/组织 + JWT 认证 + 等保安全策略
-│   │   └── system-openapi/   #   开发者中心：应用(AK/SK)、接口清单、接口授权
+│   │   ├── system-openapi/   #   开发者中心：应用(AK/SK)、接口清单、接口授权
+│   │   └── system-file/      #   文件管理：sys_file 登记 + FileRegistry SPI 实现
 │   └── component/            # 功能组件板块
-│       ├── device-component/ #   设备/告警/规则/命令下发
+│       ├── device-component/ #   设备/物模型校验/DFX 管道宿主
 │       ├── product-component/#   产品/物模型
-│       └── network-component/#   MQTT 接入（EMQX 鉴权回调 + 共享订阅消费）、CoAP（预留）
+│       ├── ota-component/    #   固件管理/升级计划（产品/设备双圈选）/MQTT 推送
+│       ├── dfx-component/    #   DFX 监控：dfx-core + access-http/mqtt/snmp
+│       ├── network-component/#   MQTT 接入（EMQX 鉴权回调 + 共享订阅消费）、CoAP（预留）
+│       ├── storage-component/#   对象存储抽象：core + minio/obs/oss/local
+│       └── timeseries-component/ # 时序抽象：timeseries-core + timeseries-iotdb
 ├── frontend/                 # vben v5 web-antd 精简版（开发者中心等全部页面）
 ├── deploy/compose/           # 单机部署编排 + 冒烟脚本 + EMQX 集成配置
 └── docs/                     # EMQX 配置手册、MQTT 设计文档（backend/docs/）
+    └── architecture/         # 平台架构设计（产品/后端/前端/数据/部署/时序，Mermaid 图文）
+```
+
+> 📐 **完整架构设计文档**：[docs/architecture/00-overview.md](docs/architecture/00-overview.md) —— 产品设计、前后端技术架构、数据架构、部署架构、关键场景时序，共 7 章 15+ 张图。
 ```
 
 ## 技术栈

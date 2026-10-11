@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.component.network.mqtt;
 
 import com.materin.tech.common.spi.DeviceCredentialLookup;
@@ -129,5 +152,41 @@ class MqttAccessPolicyTest {
     void authorizeOpen_shouldDenyNullInput() {
         assertThat(policy.authorizeOpen("u", null, "publish")).isFalse();
         assertThat(policy.authorizeOpen(null, "open/#", "subscribe")).isFalse();
+    }
+
+    // ===== 网关主题族 ACL（GATEWAY 类型设备专用）=====
+
+    @Test
+    void authorize_shouldAllowGatewayDeviceOnGatewayTopics() {
+        DeviceCredentialLookup lookup = Mockito.mock(DeviceCredentialLookup.class);
+        Mockito.when(lookup.findDeviceTypeByKey("gw-1")).thenReturn(Optional.of("GATEWAY"));
+        Mockito.when(credentialLookup.getIfAvailable()).thenReturn(lookup);
+        assertThat(policy.authorize("gw-1", "materin/gateway/connect", "publish")).isTrue();
+        assertThat(policy.authorize("gw-1", "materin/gateway/telemetry", "publish")).isTrue();
+        // 下行主题按网关 deviceKey 隔离：只能订自己的
+        assertThat(policy.authorize("gw-1", "materin/gateway/downlink/gw-1", "subscribe")).isTrue();
+        assertThat(policy.authorize("gw-1", "materin/gateway/downlink", "subscribe")).isFalse();
+        assertThat(policy.authorize("gw-1", "materin/gateway/downlink/gw-2", "subscribe")).isFalse();
+        // downlink 是平台下行主题，网关不可发布
+        assertThat(policy.authorize("gw-1", "materin/gateway/downlink/gw-1", "publish")).isFalse();
+    }
+
+    @Test
+    void authorize_shouldDenyNonGatewayDeviceOnGatewayTopics() {
+        DeviceCredentialLookup lookup = Mockito.mock(DeviceCredentialLookup.class);
+        Mockito.when(lookup.findDeviceTypeByKey("th-001")).thenReturn(Optional.of("DIRECT"));
+        Mockito.when(credentialLookup.getIfAvailable()).thenReturn(lookup);
+        assertThat(policy.authorize("th-001", "materin/gateway/connect", "publish")).isFalse();
+    }
+
+    @Test
+    void authorize_shouldAllowGatewayOnBehalfChildReplyPublish() {
+        DeviceCredentialLookup lookup = Mockito.mock(DeviceCredentialLookup.class);
+        Mockito.when(lookup.findDeviceTypeByKey("gw-1")).thenReturn(Optional.of("GATEWAY"));
+        Mockito.when(credentialLookup.getIfAvailable()).thenReturn(lookup);
+        assertThat(policy.authorize("gw-1", "materin/pk/child-1/reply", "publish")).isTrue();
+        // 仅放行 reply 后缀的 publish，其余跨 namespace 仍拒绝
+        assertThat(policy.authorize("gw-1", "materin/pk/child-1/report", "publish")).isFalse();
+        assertThat(policy.authorize("gw-1", "materin/pk/child-1/reply", "subscribe")).isFalse();
     }
 }

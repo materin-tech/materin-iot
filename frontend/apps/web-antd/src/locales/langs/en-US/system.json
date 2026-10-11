@@ -107,5 +107,8 @@
     "save": "Save",
     "saved": "Saved",
     "loadFailed": "Load failed"
+  },
+  "files": {
+    "title": "File Management"
   }
 }

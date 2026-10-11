@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.component.dfx.access.mqtt;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -104,13 +127,24 @@ public class DfxMqttAccess implements DfxAccessHealthProvider {
                     }
                     String deviceKey = parsed[1];
                     touchOnline(deviceKey);
+                    com.materin.tech.common.core.TraceIds.setMdc(null);
                     try {
                         Map<String, Object> metrics =
                                 objectMapper.readValue(publish.getPayloadAsBytes(), MAP_TYPE);
+                        // 报文携带 traceId 时以其为准，并从指标中剔除（metrics 直落时序库）
+                        Object traceId = metrics.remove(
+                                com.materin.tech.common.core.TraceIds.PAYLOAD_KEY);
+                        if (traceId != null) {
+                            org.slf4j.MDC.put(com.materin.tech.common.core.TraceIds.MDC_KEY,
+                                    com.materin.tech.common.core.TraceIds.normalize(
+                                            String.valueOf(traceId)));
+                        }
                         ingest.getIfAvailable().ingest(
                                 new DfxRecord(deviceKey, System.currentTimeMillis(), "mqtt", metrics));
                     } catch (Exception e) {
                         log.warn("DFX MQTT 报文解析失败: {}", e.getMessage());
+                    } finally {
+                        com.materin.tech.common.core.TraceIds.clearMdc();
                     }
                 })
                 .send()

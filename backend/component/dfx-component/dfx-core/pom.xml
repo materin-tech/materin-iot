@@ -22,7 +22,7 @@
         </dependency>
         <dependency>
             <groupId>com.materin.tech</groupId>
-            <artifactId>timeseries-component</artifactId>
+            <artifactId>timeseries-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

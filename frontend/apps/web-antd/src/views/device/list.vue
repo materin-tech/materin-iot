@@ -1,3 +1,27 @@
+<!--
+MIT License
+
+Copyright (c) 2026 materin-tech
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+
 <script lang="ts" setup>
 import type { DeviceApi } from '#/api/device/device';
 
@@ -165,6 +189,8 @@ function toggleSelect(id: string) {
 // ---------- 新增/编辑 ----------
 const productOptions = ref<{ label: string; value: string }[]>([]);
 
+const productNodeType = ref<Record<string, string>>({});
+
 async function loadProductOptions() {
   if (productOptions.value.length > 0) return;
   const res = await getProductList({ page: 1, pageSize: 200 });
@@ -172,34 +198,93 @@ async function loadProductOptions() {
     label: item.name,
     value: item.id,
   }));
+  productNodeType.value = Object.fromEntries(
+    res.items.map((item) => [String(item.id), (item as any).nodeType ?? 'DIRECT']),
+  );
+}
+
+/** 产品节点形态变化 → 设备类型自动锁定为该形态（产品-物模型-设备 一致性） */
+function onProductChange() {
+  const nodeType = formData.productId
+    ? productNodeType.value[String(formData.productId)]
+    : undefined;
+  if (nodeType) {
+    formData.deviceType = nodeType;
+  }
+  if (formData.deviceType === 'CHILD') {
+    loadGatewayOptions();
+  }
 }
 
 const formOpen = ref(false);
 const formMode = ref<'create' | 'edit'>('create');
-const formData = reactive<{ deviceKey?: string; id?: string; name: string; productId?: string; remark: string }>({
+const formData = reactive<{
+  deviceKey?: string;
+  deviceType?: string;
+  gatewayId?: string;
+  id?: string;
+  name: string;
+  productId?: string;
+  remark: string;
+}>({
   deviceKey: '',
+  deviceType: 'DIRECT',
+  gatewayId: undefined,
   id: undefined,
   name: '',
   productId: undefined,
   remark: '',
 });
 
+const DEVICE_TYPE_OPTIONS = [
+  { label: '直连设备', value: 'DIRECT' },
+  { label: '边缘网关', value: 'GATEWAY' },
+  { label: '子设备（经网关）', value: 'CHILD' },
+];
+
+const DEVICE_TYPE_META: Record<string, { color: string; label: string }> = {
+  CHILD: { color: 'purple', label: '子设备' },
+  DIRECT: { color: 'default', label: '直连' },
+  GATEWAY: { color: 'geekblue', label: '网关' },
+};
+
+/** 网关选项（CHILD 归属选择用） */
+const gatewayOptions = ref<{ label: string; value: string }[]>([]);
+async function loadGatewayOptions() {
+  const res = await getDeviceList({ deviceType: 'GATEWAY', page: 1, pageSize: 200 } as any);
+  gatewayOptions.value = (res.items ?? []).map((item) => ({ label: item.name, value: item.id }));
+}
+
 function onCreate() {
   formMode.value = 'create';
-  Object.assign(formData, { deviceKey: '', id: undefined, name: '', productId: undefined, remark: '' });
+  Object.assign(formData, {
+    deviceKey: '',
+    deviceType: 'DIRECT',
+    gatewayId: undefined,
+    id: undefined,
+    name: '',
+    productId: undefined,
+    remark: '',
+  });
   formOpen.value = true;
+  if (formData.deviceType === 'CHILD') {
+    loadGatewayOptions();
+  }
 }
 
 function onEdit(row: DeviceApi.Device) {
   formMode.value = 'edit';
   Object.assign(formData, {
     deviceKey: row.deviceKey,
+    deviceType: (row as any).deviceType ?? 'DIRECT',
+    gatewayId: (row as any).gatewayId ? String((row as any).gatewayId) : undefined,
     id: row.id,
     name: row.name,
     productId: row.productId,
     remark: row.remark ?? '',
   });
   formOpen.value = true;
+  loadGatewayOptions();
 }
 
 const formTitle = computed(() =>
@@ -222,6 +307,16 @@ async function onSave() {
   };
   if (formData.deviceKey?.trim()) {
     payload.deviceKey = formData.deviceKey.trim();
+  }
+  if (formData.deviceType) {
+    payload.deviceType = formData.deviceType;
+  }
+  if (formData.deviceType === 'CHILD') {
+    if (!formData.gatewayId) {
+      message.error('子设备必须选择所属网关');
+      return;
+    }
+    payload.gatewayId = formData.gatewayId;
   }
   if (formMode.value === 'edit') {
     await updateDevice(formData.id!, payload);
@@ -392,6 +487,11 @@ onMounted(() => {
                   {{ STATUS_META[row.status]?.label }}
                 </Tag>
               </div>
+              <div v-if="(row as any).deviceType && (row as any).deviceType !== 'DIRECT'" class="pl-7 pt-1">
+                <Tag :color="DEVICE_TYPE_META[(row as any).deviceType]?.color" class="!m-0 text-xs">
+                  {{ DEVICE_TYPE_META[(row as any).deviceType]?.label }}
+                </Tag>
+              </div>
               <div class="text-muted-foreground mt-1 font-mono text-xs">{{ row.deviceKey }}</div>
 
               <div class="text-muted-foreground mt-3 space-y-1.5 text-xs">
@@ -455,6 +555,26 @@ onMounted(() => {
             show-search
             option-filter-prop="label"
             :placeholder="$t('device.product')"
+            @change="onProductChange"
+          />
+        </div>
+        <div>
+          <div class="mb-1 text-sm">设备类型</div>
+          <Select
+            v-model:value="formData.deviceType"
+            :disabled="formMode === 'edit'"
+            :options="DEVICE_TYPE_OPTIONS"
+            class="w-full"
+          />
+        </div>
+        <div v-if="formData.deviceType === 'CHILD'">
+          <div class="mb-1 text-sm">所属网关 *</div>
+          <Select
+            v-model:value="formData.gatewayId"
+            :options="gatewayOptions"
+            class="w-full"
+            placeholder="选择网关设备"
+            show-search
           />
         </div>
         <div>

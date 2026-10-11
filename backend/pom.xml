@@ -58,6 +58,11 @@
             </dependency>
             <dependency>
                 <groupId>com.materin.tech</groupId>
+                <artifactId>system-file</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.materin.tech</groupId>
                 <artifactId>product-component</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -140,12 +145,12 @@
             </dependency>
             <dependency>
                 <groupId>com.materin.tech</groupId>
-                <artifactId>timeseries-component</artifactId>
+                <artifactId>timeseries-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.materin.tech</groupId>
-                <artifactId>iotdb-component</artifactId>
+                <artifactId>timeseries-iotdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -201,6 +206,25 @@
                     <configuration>
                         <!-- Spring 6.1+ 依赖参数名反射，@PathVariable/@RequestParam 不写显式名时必需 -->
                         <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+                <!-- 统一开源证书头：mvn license:format 批量补头，mvn license:check 校验（MIT，与根目录 LICENSE 一致） -->
+                <plugin>
+                    <groupId>com.mycila</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>4.6</version>
+                    <configuration>
+                        <licenseSets>
+                            <licenseSet>
+                                <header>${session.executionRootDirectory}/etc/license-header.txt</header>
+                                <includes>
+                                    <include>src/**/*.java</include>
+                                </includes>
+                            </licenseSet>
+                        </licenseSets>
+                        <mapping>
+                            <java>SLASHSTAR_STYLE</java>
+                        </mapping>
                     </configuration>
                 </plugin>
             </plugins>

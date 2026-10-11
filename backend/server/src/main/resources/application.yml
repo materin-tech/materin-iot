@@ -25,6 +25,11 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 
+logging:
+  pattern:
+    # 全链路追踪：日志级别后附 [traceId]，MQTT 回调线程与 HTTP 请求均由 TraceIds 写入 MDC
+    level: "%5p [%X{traceId:-}]"
+
 springdoc:
   api-docs:
     enabled: true

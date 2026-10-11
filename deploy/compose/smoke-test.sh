@@ -24,7 +24,9 @@ check "frontend healthy" "docker inspect -f '{{.State.Health.Status}}' materin-f
 check "frontend http 200"  "curl -sf -o /dev/null http://localhost:3080/"
 check "frontend proxy login" "curl -sf -X POST http://localhost:3080/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"$ADMIN_PASSWORD\"}' | grep -q 'accessToken'"
 check "backend api list"   "curl -sf http://localhost:8080/api/v1/device/list | grep -q '\"code\":0'"
-check "backend create"     "curl -sf -X POST http://localhost:8080/api/v1/device -H 'Content-Type: application/json' -d '{\"deviceKey\":\"smoke-$(date +%s)\",\"name\":\"smoke\",\"status\":0}' | grep -q '\"code\":0'"
+# 设备必须归属产品：先建产品取 id，再建设备（2026-10 起的约束）
+SMOKE_PID=$(curl -sf -X POST http://localhost:8080/api/v1/product -H 'Content-Type: application/json' -d "{\"name\":\"smoke-p-$(date +%s)\"}" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+check "backend create"     "[ -n \"$SMOKE_PID\" ] && curl -sf -X POST http://localhost:8080/api/v1/device -H 'Content-Type: application/json' -d '{\"deviceKey\":\"smoke-$(date +%s)\",\"name\":\"smoke\",\"status\":0,\"productId\":${SMOKE_PID}}' | grep -q '\"code\":0'"
 check "emqx dashboard"     "curl -sf http://localhost:18083 | grep -qi emqx"
 check "iotdb cli"          "docker exec materin-iotdb /iotdb/sbin/start-cli.sh -e 'SHOW DATABASES' | grep -qi 'costs'"
 check "redis ping"         "docker exec materin-redis redis-cli ping | grep -q PONG"

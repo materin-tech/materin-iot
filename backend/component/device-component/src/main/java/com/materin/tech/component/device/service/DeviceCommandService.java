@@ -1,7 +1,31 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.component.device.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.materin.tech.common.exception.BizException;
+import com.materin.tech.common.mqtt.MqttTopics;
 import com.materin.tech.component.device.entity.Device;
 import com.materin.tech.component.device.mapper.DeviceMapper;
 import com.materin.tech.common.redis.RedisKeys;
@@ -68,12 +92,29 @@ public class DeviceCommandService {
     public String send(Long deviceId, Map<String, Object> command) {
         requirePublisher();
         Device device = requireOnlineDevice(deviceId);
-        String topic = commandTopic(device);
+        String pk = resolveProductKey(device);
         String requestId = UUID.randomUUID().toString().replace("-", "");
 
         Map<String, Object> payload = new java.util.HashMap<>();
         payload.put("requestId", requestId);
+        // 注入链路追踪：HTTP 线程 MDC 已由 TraceFilter 设置（前端注入或后端生成），非 HTTP 调用方兜底生成
+        payload.put(com.materin.tech.common.core.TraceIds.MDC_KEY,
+                com.materin.tech.common.core.TraceIds.current());
         payload.put("data", command);
+        String topic;
+        if (isChildDevice(device)) {
+            // 子设备命令经其归属网关的专属下行主题转发（多网关隔离），附带完整回执主题供网关代子设备发布应答
+            Device gateway = device.getGatewayId() == null ? null
+                    : deviceMapper.selectOneById(device.getGatewayId());
+            if (gateway == null || !"GATEWAY".equals(gateway.getDeviceType())) {
+                throw new BizException(400, "子设备未绑定有效网关，无法下发命令");
+            }
+            topic = MqttTopics.gatewayDownlinkTopic(gateway.getDeviceKey());
+            payload.put("device", device.getDeviceKey());
+            payload.put("replyTopic", "materin/" + pk + "/" + device.getDeviceKey() + "/reply");
+        } else {
+            topic = "materin/" + pk + "/" + device.getDeviceKey() + "/cmd";
+        }
 
         byte[] bytes;
         try {
@@ -146,14 +187,19 @@ public class DeviceCommandService {
         }
     }
 
-    private String commandTopic(Device device) {
+    /** 解析设备所属产品 productKey（下行寻址/replyTopic 构造共用）。 */
+    private String resolveProductKey(Device device) {
         String pk = productLookup == null || device.getProductId() == null ? null
                 : productLookup.findById(String.valueOf(device.getProductId()))
                         .map(ProductLookup.ProductSummary::productKey).orElse(null);
         if (pk == null) {
             throw new BizException(400, "设备未关联产品，无法寻址");
         }
-        return "materin/" + pk + "/" + device.getDeviceKey() + "/cmd";
+        return pk;
+    }
+
+    private boolean isChildDevice(Device device) {
+        return "CHILD".equals(device.getDeviceType());
     }
 
     private Device requireOnlineDevice(Long deviceId) {

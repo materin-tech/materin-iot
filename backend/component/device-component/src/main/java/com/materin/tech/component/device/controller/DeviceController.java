@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.component.device.controller;
 
 import com.materin.tech.common.core.PageResult;
@@ -39,8 +62,9 @@ public class DeviceController {
                                         @Parameter(description = "名称（模糊匹配）") @RequestParam(required = false) String name,
                                         @Parameter(description = "设备标识") @RequestParam(required = false) String deviceKey,
                                         @Parameter(description = "产品 ID") @RequestParam(required = false) Long productId,
-                                        @Parameter(description = "状态：1-启用 0-禁用") @RequestParam(required = false) Integer status) {
-        return R.ok(deviceService.list(page, pageSize, name, deviceKey, productId, status));
+                                        @Parameter(description = "状态：1-启用 0-禁用") @RequestParam(required = false) Integer status,
+                                        @Parameter(description = "设备类型：DIRECT/GATEWAY/CHILD") @RequestParam(required = false) String deviceType) {
+        return R.ok(deviceService.list(page, pageSize, name, deviceKey, productId, status, deviceType));
     }
 
     @Operation(summary = "创建设备（生成设备密钥）", description = "权限：当前未接入登录态（规划中）")

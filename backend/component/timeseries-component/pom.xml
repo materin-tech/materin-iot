@@ -11,19 +11,12 @@
     </parent>
 
     <artifactId>timeseries-component</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
     <name>Materin Timeseries Component</name>
-    <description>统一时序存储抽象（TimeSeriesData/Metadata/Query + Service/Manager），对标 jetlinks-community，TSDB 无关</description>
+    <description>统一时序存储中间件抽象（对标 storage-component：core 抽象 + 厂商实现子模块；IoTDB 先行）</description>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <modules>
+        <module>timeseries-core</module>
+        <module>timeseries-iotdb</module>
+    </modules>
 </project>

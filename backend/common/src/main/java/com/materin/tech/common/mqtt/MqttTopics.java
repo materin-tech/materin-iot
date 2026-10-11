@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.common.mqtt;
 
 /**
@@ -36,6 +59,35 @@ public final class MqttTopics {
     public static final String WILDCARD_REPLY = "materin/+/+/reply";
     /** 平台通配（仅服务账号）：DFX 健康指标上报 */
     public static final String WILDCARD_DFX = "materin/+/+/dfx";
+
+    // ===== 网关主题族（对齐 ThingsBoard v1/gateway/* 语义，见 docs/architecture/07-gateway.md） =====
+
+    /** 网关上行：子设备上线声明 {"device":"dk","name":".."} */
+    public static final String GATEWAY_CONNECT = "materin/gateway/connect";
+    /** 网关上行：子设备离线 {"device":"dk"} */
+    public static final String GATEWAY_DISCONNECT = "materin/gateway/disconnect";
+    /** 网关上行：子设备遥测 {"<dk>":[{"ts":毫秒,"values":{..}}]} */
+    public static final String GATEWAY_TELEMETRY = "materin/gateway/telemetry";
+    /** 网关上行：子设备属性 {"<dk>":{..}} */
+    public static final String GATEWAY_ATTRIBUTES = "materin/gateway/attributes";
+    /** 网关下行：平台→网关（子设备命令/属性推送） {"device":"dk","requestId":"..","data":{..}} */
+    public static final String GATEWAY_DOWNLINK = "materin/gateway/downlink";
+    /** 网关主题族通配（仅服务账号） */
+    public static final String WILDCARD_GATEWAY = "materin/gateway/#";
+
+    /**
+     * 网关下行主题（按网关 deviceKey 分流，多网关互不串扰）：
+     * 网关只能订阅自己的 downlink（ACL 精确匹配）。
+     */
+    public static String gatewayDownlinkTopic(String gatewayDeviceKey) {
+        return GATEWAY_DOWNLINK + "/" + gatewayDeviceKey;
+    }
+
+    /** 是否网关主题族（materin/gateway/...） */
+    public static boolean isGatewayTopic(String topic) {
+        return topic != null && topic.startsWith(PREFIX + "gateway/");
+    }
+
 
     /** 共享订阅组名（多实例负载均衡） */
     public static final String SHARE_GROUP = "materin-svc";

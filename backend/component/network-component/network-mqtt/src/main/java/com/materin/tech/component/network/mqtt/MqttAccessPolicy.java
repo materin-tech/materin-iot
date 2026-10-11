@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2026 materin-tech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.materin.tech.component.network.mqtt;
 
 import com.materin.tech.common.mqtt.MqttTopics;
@@ -70,6 +93,23 @@ public class MqttAccessPolicy {
         if (appChecker != null && appChecker.existsByAppKey(username)) {
             return topic.startsWith("open/");
         }
+        // 网关主题族先行判定：downlink/{gwKey} 是 4 段主题，parse 会误判为设备 namespace，
+        // 必须在 parse 之前拦截（多网关隔离：publish 仅四个上行主题，subscribe 仅自己的下行主题）
+        if (MqttTopics.isGatewayTopic(topic)) {
+            if (!isGatewayDevice(username)) {
+                return false;
+            }
+            if ("publish".equals(action)) {
+                return MqttTopics.GATEWAY_CONNECT.equals(topic)
+                        || MqttTopics.GATEWAY_DISCONNECT.equals(topic)
+                        || MqttTopics.GATEWAY_TELEMETRY.equals(topic)
+                        || MqttTopics.GATEWAY_ATTRIBUTES.equals(topic);
+            }
+            if ("subscribe".equals(action)) {
+                return MqttTopics.gatewayDownlinkTopic(username).equals(topic);
+            }
+            return false;
+        }
         String[] parsed = MqttTopics.parse(topic);
         if (parsed == null) {
             return false;
@@ -80,6 +120,11 @@ public class MqttAccessPolicy {
         String rest = parsed[3];
         // 自身 namespace 校验：topic 中的 deviceKey 必须是本人，productKey 必须是本人所属产品
         if (!deviceKey.equals(username)) {
+            // 网关代子设备发布回执（materin/{pk}/{child}/reply）：仅放行 GATEWAY 类型设备的 reply 后缀 publish
+            if ("publish".equals(action) && MqttTopics.UP_REPLY.equals(suffix) && rest.isEmpty()
+                    && isGatewayDevice(username)) {
+                return true;
+            }
             return false;
         }
         Optional<String> ownProductKey = ownProductKey(username);
@@ -94,6 +139,13 @@ public class MqttAccessPolicy {
                     && (rest.isEmpty() || !rest.contains("#") || rest.endsWith("#"));
         }
         return false;
+    }
+
+    /** 是否 GATEWAY 类型设备（网关主题族 ACL 用）。 */
+    private boolean isGatewayDevice(String deviceKey) {
+        DeviceCredentialLookup lookup = credentialLookup.getIfAvailable();
+        return lookup != null
+                && "GATEWAY".equals(lookup.findDeviceTypeByKey(deviceKey).orElse(null));
     }
 
     private Optional<String> ownProductKey(String deviceKey) {

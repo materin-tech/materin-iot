@@ -18,5 +18,6 @@
     <modules>
         <module>system-rbac</module>
         <module>system-openapi</module>
+        <module>system-file</module>
     </modules>
 </project>
