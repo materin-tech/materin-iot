@@ -37,8 +37,16 @@ export namespace DeviceAlertApi {
     /** info-信息 warn-警告 error-故障 */
     level: 'error' | 'info' | 'warn';
     content: string;
-    /** 0-未处理 1-已处理 */
-    status: 0 | 1;
+    /** 0-活跃 1-已确认 2-已恢复 */
+    status: 0 | 1 | 2;
+    ruleId?: number;
+    metric?: string;
+    lastValue?: string;
+    triggerCount?: number;
+    lastTime?: string;
+    ackTime?: string;
+    clearTime?: string;
+    clearReason?: string;
     createTime: string;
   }
 }
@@ -59,4 +67,9 @@ async function updateDeviceAlert(
   return requestClient.put(`/device/alert/${id}`, data);
 }
 
-export { getDeviceAlertList, updateDeviceAlert };
+/** 告警统计（总量/生命周期/级别分布，单次请求） */
+async function getDeviceAlertStats() {
+  return requestClient.get<Record<string, number>>('/device/alert/stats');
+}
+
+export { getDeviceAlertList, getDeviceAlertStats, updateDeviceAlert };

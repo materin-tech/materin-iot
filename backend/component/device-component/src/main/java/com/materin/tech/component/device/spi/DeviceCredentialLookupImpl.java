@@ -72,6 +72,12 @@ public class DeviceCredentialLookupImpl implements DeviceCredentialLookup {
     }
 
     @Override
+    public Optional<String> findNameById(Long deviceId) {
+        Device device = deviceMapper.selectOneByQuery(QueryWrapper.create().eq("id", deviceId));
+        return device == null ? Optional.empty() : Optional.ofNullable(device.getName());
+    }
+
+    @Override
     public Optional<Long> findProductIdByKey(String deviceKey) {
         Device device = deviceMapper.selectOneByQuery(
                 QueryWrapper.create().eq("device_key", deviceKey));
@@ -95,5 +101,19 @@ public class DeviceCredentialLookupImpl implements DeviceCredentialLookup {
         Device device = deviceMapper.selectOneByQuery(
                 QueryWrapper.create().eq("device_key", deviceKey));
         return device == null ? Optional.empty() : Optional.ofNullable(device.getDeviceType());
+    }
+
+    @Override
+    public DeviceStatusStats statusStats() {
+        long total = nz(deviceMapper.selectCountByQuery(QueryWrapper.create()));
+        long online = nz(deviceMapper.selectCountByQuery(
+                QueryWrapper.create().eq("status", 1)));
+        long offline = nz(deviceMapper.selectCountByQuery(
+                QueryWrapper.create().eq("status", 2)));
+        return new DeviceStatusStats(total, online, offline, total - online - offline);
+    }
+
+    private long nz(Long c) {
+        return c == null ? 0L : c;
     }
 }

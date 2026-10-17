@@ -23,7 +23,8 @@
     "list": "设备列表",
     "debug": "在线调试",
     "alert": "事件告警",
-    "rule": "规则联动"
+    "rule": "规则联动",
+    "monitor": "设备监控"
   },
   "dfx": {
     "title": "DFX监控",
@@ -46,6 +47,15 @@
     },
     "rules": {
       "title": "告警规则"
+    },
+    "targets": {
+      "title": "采集目标"
+    },
+    "channels": {
+      "title": "通知渠道"
+    },
+    "overview": {
+      "title": "健康大盘"
     }
   },
   "ota": {

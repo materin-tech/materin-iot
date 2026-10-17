@@ -34,20 +34,32 @@ export namespace DfxApi {
     port?: number;
     version?: string;
     community?: string;
+    v3User?: string;
+    v3AuthProtocol?: string;
+    v3AuthPassphrase?: string;
+    v3PrivProtocol?: string;
+    v3PrivPassphrase?: string;
     intervalSeconds?: number;
     enabled?: number;
     remark?: string;
   }
   export interface DfxRule {
     id?: number;
-    deviceId: number;
+    deviceId?: number;
     deviceName?: string;
+    productId?: number;
     metric: string;
     comparator: string;
     threshold: number;
+    threshold2?: number;
+    durationSeconds?: number;
+    clearComparator?: string;
+    clearThreshold?: number;
+    messageTemplate?: string;
     level?: string;
     suppressSeconds?: number;
     enabled?: number;
+    remark?: string;
   }
   export interface DfxAccessHealth {
     name: string;
@@ -91,6 +103,32 @@ export namespace DfxApi {
     name: string;
     configJson: string;
     remark?: string;
+  }
+  export type NotifyChannelType = 'email' | 'inapp' | 'webhook';
+  export interface NotifyChannel {
+    id?: number;
+    name: string;
+    type: NotifyChannelType;
+    configJson: string;
+    minLevel?: string;
+    enabled?: number;
+    remark?: string;
+  }
+  export interface DfxNotification {
+    id: number;
+    title: string;
+    content: string;
+    level: string;
+    alertId?: number;
+    readFlag: number;
+    createTime?: string;
+  }
+  export interface DfxOverview {
+    devices?: { total: number; online: number; offline: number; inactive: number };
+    alerts?: Record<string, number>;
+    trend?: { date: string; total: number }[];
+    components: DfxAccessHealth[];
+    pipeline: Record<string, { count: number; lastIngestAt: number }>;
   }
   export interface DfxHistoryPoint {
     time: number;
@@ -139,6 +177,48 @@ async function saveDfxDashboard(data: Partial<DfxApi.DfxDashboard>) {
 async function getDfxHealth() {
   return requestClient.get<DfxApi.DfxHealthResponse>('/device/dfx/health');
 }
-export { getDfxHealth, getDfxMetricList, saveDfxMetric, getDfxDashboards, saveDfxDashboard, createDfxRule, createDfxTarget, deleteDfxRule, deleteDfxTarget,
-  getDfxHistory, getDfxLatest, getDfxRuleList, getDfxTargetList,
+async function updateDfxRule(id: number, data: Partial<DfxApi.DfxRule>) {
+  return requestClient.put(`/device/dfx/rule/${id}`, data);
+}
+async function updateDfxTarget(id: number, data: Partial<DfxApi.DfxTarget>) {
+  return requestClient.put(`/device/dfx/target/${id}`, data);
+}
+async function getDfxOverview(trendDays = 7) {
+  return requestClient.get<DfxApi.DfxOverview>('/device/dfx/overview', { params: { trendDays } });
+}
+async function getDfxChannelList() {
+  return requestClient.get<DfxApi.NotifyChannel[]>('/device/dfx/notify/channel/list');
+}
+async function createDfxChannel(data: Omit<DfxApi.NotifyChannel, 'id'>) {
+  return requestClient.post('/device/dfx/notify/channel', data);
+}
+async function updateDfxChannel(id: number, data: Partial<DfxApi.NotifyChannel>) {
+  return requestClient.put(`/device/dfx/notify/channel/${id}`, data);
+}
+async function deleteDfxChannel(id: number) {
+  return requestClient.delete(`/device/dfx/notify/channel/${id}`);
+}
+async function testDfxChannel(id: number) {
+  return requestClient.post(`/device/dfx/notify/channel/${id}/test`);
+}
+async function getDfxNotificationList(params: Record<string, any>) {
+  return requestClient.get<{ items: DfxApi.DfxNotification[]; total: number }>(
+    '/device/dfx/notification/list', { params });
+}
+async function getDfxNotificationUnread() {
+  return requestClient.get<number>('/device/dfx/notification/unread-count');
+}
+async function readDfxNotification(id: number) {
+  return requestClient.put(`/device/dfx/notification/read/${id}`);
+}
+async function readAllDfxNotifications() {
+  return requestClient.put('/device/dfx/notification/read-all');
+}
+export {
+  createDfxChannel, createDfxRule, createDfxTarget, deleteDfxChannel, deleteDfxRule,
+  deleteDfxTarget, getDfxChannelList, getDfxHealth, getDfxHistory, getDfxLatest,
+  getDfxMetricList, getDfxNotificationList, getDfxNotificationUnread, getDfxOverview,
+  getDfxRuleList, getDfxTargetList, getDfxDashboards, readAllDfxNotifications,
+  readDfxNotification, saveDfxDashboard, saveDfxMetric, testDfxChannel,
+  updateDfxChannel, updateDfxRule, updateDfxTarget,
 };

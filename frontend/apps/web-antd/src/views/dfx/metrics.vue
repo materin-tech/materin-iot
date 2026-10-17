@@ -56,6 +56,8 @@ const charts = ref<DfxApi.DfxChartConfig[]>([]);
 const rows = ref<Record<string, any>[]>([]);
 const editing = ref(false);
 const loading = ref(false);
+const rangeHours = ref(3);
+const aggInterval = ref<number | undefined>(undefined);
 let timer: ReturnType<typeof setInterval> | undefined;
 
 const dictOptions = computed(() =>
@@ -148,10 +150,15 @@ async function loadRows() {
   }
   const keys = [...new Set(charts.value.flatMap((c) => c.metrics.map((m) => m.key)))];
   const end = Date.now();
-  rows.value = (await getDfxHistory({
+  const params: Record<string, any> = {
     deviceId: device.id, end, keys: keys.join(','), limit: 500,
-    start: end - 3 * 3600 * 1000,
-  })) as any;
+    start: end - rangeHours.value * 3600 * 1000,
+  };
+  if (aggInterval.value) {
+    params.agg = 'avg';
+    params.interval = aggInterval.value;
+  }
+  rows.value = (await getDfxHistory(params)) as any;
 }
 
 async function refreshAll() {
@@ -214,6 +221,18 @@ onBeforeUnmount(() => {
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <Select v-model:value="productId" :options="products.map((p) => ({ label: p.name, value: Number(p.id) }))" class="w-56" placeholder="产品" @change="onProductChange" />
       <Select v-model:value="deviceKey" :options="devices.map((d) => ({ label: `${d.name} (${d.deviceKey})`, value: String(d.deviceKey) }))" class="w-64" placeholder="设备" show-search @change="loadRows" />
+      <Select v-model:value="rangeHours" class="w-32" :options="[
+        { label: '近 1 小时', value: 1 },
+        { label: '近 3 小时', value: 3 },
+        { label: '近 24 小时', value: 24 },
+        { label: '近 7 天', value: 168 },
+      ]" @change="loadRows" />
+      <Select v-model:value="aggInterval" class="w-32" :options="[
+        { label: '原始值', value: undefined },
+        { label: '1 分钟均值', value: 60_000 },
+        { label: '5 分钟均值', value: 300_000 },
+        { label: '1 小时均值', value: 3_600_000 },
+      ]" placeholder="聚合" @change="loadRows" />
       <Button @click="refreshAll">{{ $t('page.dfx.common.refresh') }}</Button>
       <div class="ml-auto flex gap-2">
         <Button v-if="editing" @click="addOpen = true">添加图表</Button>
@@ -236,7 +255,7 @@ onBeforeUnmount(() => {
           danger size="small"
           @click="removeChart(i)"
         >删除</Button>
-        <DfxChartCard ref="cardsRef" :chart="c" :rows="rows" />
+        <DfxChartCard :chart="c" :rows="rows" />
       </div>
     </div>
 

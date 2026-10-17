@@ -42,6 +42,11 @@ public interface DeviceCredentialLookup {
         return Optional.empty();
     }
 
+    /** 按设备 ID 查设备名（DFX 规则/采集目标创建时冗余回填，default 空实现便于独立运行）。 */
+    default Optional<String> findNameById(Long deviceId) {
+        return Optional.empty();
+    }
+
     /** 按设备 Key 查所属产品的 productKey（MQTT ACL namespace 校验）。 */
     default Optional<String> findProductKeyByKey(String deviceKey) {
         return Optional.empty();
@@ -55,5 +60,13 @@ public interface DeviceCredentialLookup {
     /** 按设备 Key 查设备类型（DIRECT/GATEWAY/CHILD），网关 ACL 判定用。 */
     default Optional<String> findDeviceTypeByKey(String deviceKey) {
         return Optional.empty();
+    }
+
+    /** 设备状态统计（DFX 大盘用）：total/online/offline/inactive，默认空实现。 */
+    default DeviceStatusStats statusStats() {
+        return new DeviceStatusStats(0, 0, 0, 0);
+    }
+
+    record DeviceStatusStats(long total, long online, long offline, long inactive) {
     }
 }

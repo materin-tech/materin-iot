@@ -26,7 +26,7 @@ SOFTWARE.
 import type { EchartsUIType } from '@vben/plugins/echarts';
 import type { DfxApi } from '#/api/device/dfx';
 
-import { ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
 import { Card } from 'ant-design-vue';
@@ -68,6 +68,10 @@ function render() {
     },
   });
 }
+
+// rows/chart 任一变化即重绘（父组件无需手动调 render）
+watch([() => props.rows, () => props.chart], () => render(), { deep: true });
+onMounted(() => render());
 
 defineExpose({ render });
 </script>

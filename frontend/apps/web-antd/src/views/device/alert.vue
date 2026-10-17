@@ -31,16 +31,20 @@ import { Page } from '@vben/common-ui';
 
 import {
   Button,
+  DatePicker,
   Input,
   message,
+  Modal,
   Popconfirm,
   Select,
   Table,
   Tag,
 } from 'ant-design-vue';
 
+import { getDeviceList } from '#/api';
 import {
   getDeviceAlertList,
+  getDeviceAlertStats,
   updateDeviceAlert,
 } from '#/api/device/alert';
 import { $t } from '#/locales';
@@ -48,12 +52,27 @@ import { $t } from '#/locales';
 defineOptions({ name: 'DeviceAlert' });
 
 const InputSearch = Input.Search;
+const RangePicker = DatePicker.RangePicker;
 
 const items = ref<DeviceAlertApi.DeviceAlert[]>([]);
 const loading = ref(false);
 const total = ref(0);
-const query = reactive({ keyword: '', level: '', page: 1, pageSize: 10, status: '' });
-const stats = ref({ error: 0, total: 0, unhandled: 0, warn: 0 });
+const query = reactive({
+  deviceId: undefined as number | undefined,
+  keyword: '',
+  level: '' as string,
+  page: 1,
+  pageSize: 10,
+  range: undefined as unknown as [string, string],
+  status: '' as number | string,
+});
+const stats = ref<Record<string, number>>({});
+const devices = ref<any[]>([]);
+
+async function loadDevices() {
+  const data = await getDeviceList({ page: 1, pageSize: 500 });
+  devices.value = (data as any)?.items ?? [];
+}
 
 const LEVEL_META: Record<string, { color: string; label: string }> = {
   error: { color: 'error', label: $t('device.levelError') },
@@ -61,36 +80,36 @@ const LEVEL_META: Record<string, { color: string; label: string }> = {
   warn: { color: 'warning', label: $t('device.levelWarn') },
 };
 
+const STATUS_META: Record<number, { color: string; label: string }> = {
+  0: { color: 'error', label: '活跃' },
+  1: { color: 'processing', label: '已确认' },
+  2: { color: 'success', label: '已恢复' },
+};
+
 async function fetchList() {
   loading.value = true;
   try {
+    const [startTime, endTime] = query.range && query.range.length === 2
+      ? query.range : [undefined, undefined];
     const res = await getDeviceAlertList({
+      deviceId: query.deviceId,
+      endTime: endTime ? String(endTime) : undefined,
       keyword: query.keyword || undefined,
       level: query.level || undefined,
-      status: query.status === '' ? undefined : query.status,
       page: query.page,
       pageSize: query.pageSize,
+      startTime: startTime ? String(startTime) : undefined,
+      status: query.status === '' ? undefined : Number(query.status),
     });
-    items.value = res.items;
-    total.value = res.total;
+    items.value = ((res as any)?.items ?? []) as DeviceAlertApi.DeviceAlert[];
+    total.value = Number((res as any)?.total ?? 0);
   } finally {
     loading.value = false;
   }
 }
 
 async function loadStats() {
-  const [all, unhandled, warn, error] = await Promise.all([
-    getDeviceAlertList({ page: 1, pageSize: 1 }),
-    getDeviceAlertList({ page: 1, pageSize: 1, status: 0 }),
-    getDeviceAlertList({ page: 1, pageSize: 1, level: 'warn' }),
-    getDeviceAlertList({ page: 1, pageSize: 1, level: 'error' }),
-  ]);
-  stats.value = {
-    error: error.total,
-    total: all.total,
-    unhandled: unhandled.total,
-    warn: warn.total,
-  };
+  stats.value = (await getDeviceAlertStats()) ?? {};
 }
 
 async function refresh() {
@@ -107,27 +126,36 @@ function onSearch(keyword: string) {
   onFilterChange();
 }
 
-function onMarkHandled(row: any) {
+function onAck(row: any) {
   updateDeviceAlert(row.id, { status: 1 }).then(() => {
     message.success($t('ui.actionMessage.operationSuccess'));
     refresh();
   });
 }
 
+const detailOpen = ref(false);
+const detailRow = ref<null | Record<string, any>>(null);
+
+function openDetail(row: Record<string, any>) {
+  detailRow.value = row;
+  detailOpen.value = true;
+}
+
 const columns = [
   { dataIndex: 'level', title: $t('device.level'), width: 90 },
-  { dataIndex: 'deviceName', title: $t('device.name'), width: 220 },
+  { dataIndex: 'deviceName', title: $t('device.name'), width: 160 },
   { dataIndex: 'content', title: $t('device.content') },
-  { dataIndex: 'status', title: $t('device.handleStatus'), width: 100 },
-  { dataIndex: 'createTime', title: $t('product.createTime'), width: 170 },
-  { dataIndex: 'operation', title: $t('product.operation'), width: 110 },
+  { dataIndex: 'triggerCount', title: '次数', width: 70 },
+  { dataIndex: 'lastTime', title: '最近触发', width: 160 },
+  { dataIndex: 'status', title: '状态', width: 90 },
+  { dataIndex: 'operation', title: $t('product.operation'), width: 130 },
 ];
 
 onMounted(() => {
   refresh();
+  loadDevices();
 });
 </script>
-
 <template>
   <Page :title="$t('page.device.alert')">
     <div class="flex flex-col gap-4">
@@ -135,8 +163,8 @@ onMounted(() => {
         <div
           v-for="tile in [
             { key: 'total', icon: 'icon-[lucide--bell]', label: $t('device.totalAlerts'), valueClass: 'text-primary' },
-            { key: 'unhandled', icon: 'icon-[lucide--bell-ring]', label: $t('device.unhandledCount'), valueClass: 'text-amber-500' },
-            { key: 'warn', icon: 'icon-[lucide--triangle-alert]', label: $t('device.warnCount'), valueClass: 'text-orange-500' },
+            { key: 'active', icon: 'icon-[lucide--bell-ring]', label: '活跃告警', valueClass: 'text-amber-500' },
+            { key: 'acked', icon: 'icon-[lucide--circle-check]', label: '已确认', valueClass: 'text-sky-500' },
             { key: 'error', icon: 'icon-[lucide--octagon-alert]', label: $t('device.errorCount'), valueClass: 'text-red-500' },
           ]"
           :key="tile.key"
@@ -158,7 +186,7 @@ onMounted(() => {
         <div class="flex flex-wrap items-center gap-3 p-4">
           <InputSearch
             v-model:value="query.keyword"
-            :placeholder="$t('device.name') + ' / ' + $t('device.content')"
+            :placeholder="`${$t('device.name') } / ${ $t('device.content')}`"
             class="max-w-64"
             allow-clear
             @search="onSearch"
@@ -178,14 +206,16 @@ onMounted(() => {
           <Select
             v-model:value="query.status"
             :options="[
-              { label: $t('device.unhandled'), value: '0' },
-              { label: $t('device.handled'), value: '1' },
+              { label: '活跃', value: 0 },
+              { label: '已确认', value: 1 },
+              { label: '已恢复', value: 2 },
             ]"
-            :placeholder="$t('device.handleStatus')"
+            placeholder="生命周期状态"
             allow-clear
             class="w-32"
             @change="onFilterChange"
           />
+          <RangePicker v-model:value="query.range" value-format="YYYY-MM-DD" />
         </div>
 
         <div class="px-4 pb-4">
@@ -211,26 +241,39 @@ onMounted(() => {
                 </Tag>
               </template>
               <template v-else-if="column.dataIndex === 'status'">
-                <Tag :color="record.status === 1 ? 'success' : 'warning'" class="!m-0">
-                  {{ record.status === 1 ? $t('device.handled') : $t('device.unhandled') }}
+                <Tag :color="STATUS_META[record.status]?.color" class="!m-0">
+                  {{ STATUS_META[record.status]?.label ?? record.status }}
                 </Tag>
               </template>
               <template v-else-if="column.dataIndex === 'operation'">
                 <Popconfirm
                   v-if="record.status === 0"
-                  :title="$t('device.markHandled') + '?'"
-                  @confirm="onMarkHandled(record)"
+                  title="确认该告警？"
+                  @confirm="onAck(record)"
                 >
-                  <Button type="link" size="small">
-                    {{ $t('device.markHandled') }}
-                  </Button>
+                  <Button type="link" size="small">确认</Button>
                 </Popconfirm>
-                <span v-else class="text-muted-foreground text-xs">—</span>
+                <Button type="link" size="small" @click="openDetail(record)">详情</Button>
               </template>
             </template>
           </Table>
         </div>
       </div>
     </div>
+    <Modal v-model:open="detailOpen" title="告警详情" destroy-on-close width="520px">
+      <div v-if="detailRow" class="space-y-2 py-2 text-sm">
+        <div class="flex gap-2"><span class="text-muted-foreground w-24 shrink-0">设备</span><span>{{ detailRow.deviceName }}</span></div>
+        <div class="flex gap-2"><span class="text-muted-foreground w-24 shrink-0">内容</span><span>{{ detailRow.content }}</span></div>
+        <div class="flex gap-2"><span class="text-muted-foreground w-24 shrink-0">最近值</span><span>{{ detailRow.lastValue ?? '-' }}</span></div>
+        <div class="flex gap-2"><span class="text-muted-foreground w-24 shrink-0">累计触发</span><span>{{ detailRow.triggerCount ?? 1 }}</span></div>
+        <div class="flex gap-2"><span class="text-muted-foreground w-24 shrink-0">最近触发</span><span>{{ detailRow.lastTime ?? '-' }}</span></div>
+        <div class="flex gap-2"><span class="text-muted-foreground w-24 shrink-0">确认时间</span><span>{{ detailRow.ackTime ?? '-' }}</span></div>
+        <div class="flex gap-2"><span class="text-muted-foreground w-24 shrink-0">恢复时间</span><span>{{ detailRow.clearTime ?? '-' }}</span></div>
+        <div class="flex gap-2"><span class="text-muted-foreground w-24 shrink-0">恢复原因</span><span>{{ detailRow.clearReason ?? '-' }}</span></div>
+      </div>
+      <template #footer>
+        <Button @click="detailOpen = false">关闭</Button>
+      </template>
+    </Modal>
   </Page>
 </template>

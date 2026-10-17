@@ -28,7 +28,7 @@ import com.mybatisflex.annotation.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-/** DFX SNMP 轮询目标（Linux 网关/主机类设备）。 */
+/** DFX SNMP 轮询目标（v2c 团体字 / v3 USM 用户，Linux 网关/主机类设备）。 */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Table("dfx_snmp_target")
@@ -42,10 +42,26 @@ public class DfxSnmpTarget extends BaseEntity {
 
     private Integer port;
 
-    /** v2c（v3 二期） */
+    /** v2c / v3 */
     private String version;
 
+    /** v2c 团体字 */
     private String community;
+
+    // ------------------------------------------------------------ SNMP v3 (USM)
+
+    /** v3 用户名 */
+    private String v3User;
+
+    /** v3 认证协议：MD5 / SHA（空=noAuth） */
+    private String v3AuthProtocol;
+
+    private String v3AuthPassphrase;
+
+    /** v3 加密协议：DES / AES128（空=noPriv） */
+    private String v3PrivProtocol;
+
+    private String v3PrivPassphrase;
 
     /** 轮询间隔（秒），最小 10 */
     private Integer intervalSeconds;

@@ -47,6 +47,9 @@ public final class RedisKeys {
     /** 设备 DFX 健康指标最新值 HASH */
     public static final String DEVICE_DFX = "materin:device:dfx:";
 
+    /** DFX 规则告警抑制窗口：{deviceId}:{ruleId} -> 首次触发时间戳（SETNX+TTL） */
+    public static final String DFX_SUPPRESS = "materin:dfx:suppress:";
+
     /** 设备资料缓存 */
     public static final String DEVICE_INFO = "materin:device:info:";
 

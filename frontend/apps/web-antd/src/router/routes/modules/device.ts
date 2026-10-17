@@ -72,6 +72,16 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('#/views/device/rule.vue'),
       },
+      {
+        path: 'monitor',
+        name: 'DeviceMonitor',
+        meta: {
+          hideInMenu: true,
+          icon: 'lucide:activity-square',
+          title: $t('page.device.monitor'),
+        },
+        component: () => import('#/views/device/monitor.vue'),
+      },
     ],
   },
 ];

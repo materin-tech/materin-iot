@@ -34,22 +34,41 @@ import lombok.EqualsAndHashCode;
 @Table("dfx_alert_rule")
 public class DfxAlertRule extends BaseEntity {
 
+    /** 设备级规则 ID（与产品级 product_id 二者至少其一） */
     private Long deviceId;
 
     private String deviceName;
 
+    /** 产品级规则（该产品下所有设备适用，新设备自动生效；设备级规则此列 NULL） */
+    private Long productId;
+
     /** 统一指标字典名（docs/dfx-monitoring-design.md §3），如 cpu_usage_pct */
     private String metric;
 
-    /** gt / lt */
+    /** gt/gte/lt/lte/eq/ne/between */
     private String comparator;
 
     private Double threshold;
 
+    /** between 条件上界（comparator=between 时必填） */
+    private Double threshold2;
+
+    /** 持续秒数：0=立即触发；>0 需连续越限达到时长才触发（防瞬时毛刺误报） */
+    private Integer durationSeconds;
+
+    /** 恢复条件比较符（NULL=不自动恢复，需人工确认/由运维下线规则） */
+    private String clearComparator;
+
+    /** 恢复条件阈值 */
+    private Double clearThreshold;
+
+    /** 告警内容模板，占位符 {device}/{metric}/{value}/{threshold}（空=默认格式） */
+    private String messageTemplate;
+
     /** info / warn / error */
     private String level;
 
-    /** 同设备同指标告警抑制窗口（秒） */
+    /** 同设备同指标告警抑制窗口（秒；也用于产品级规则按设备独立计时） */
     private Integer suppressSeconds;
 
     /** 1-启用 0-停用 */

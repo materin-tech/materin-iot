@@ -28,7 +28,9 @@ import com.mybatisflex.annotation.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-/** 设备告警。 */
+import java.time.LocalDateTime;
+
+/** 设备告警（生命周期：0-活跃 → 1-已确认 → 2-已恢复）。 */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Table("device_alert")
@@ -46,6 +48,30 @@ public class DeviceAlert extends BaseEntity {
     /** 关联全链路追踪 ID（存在链路上下文时记录，调度线程产生的告警为新生成 ID） */
     private String traceId;
 
-    /** 0-未处理 1-已处理 */
+    /** 0-活跃 1-已确认 2-已恢复 */
     private Integer status;
+
+    /** 触发规则 ID（规则告警的合并键） */
+    private Long ruleId;
+
+    /** 告警指标（非规则告警的合并键，如 snmp_poll/offline） */
+    private String metric;
+
+    /** 最近一次越限值 */
+    private String lastValue;
+
+    /** 同规则累计触发次数 */
+    private Integer triggerCount;
+
+    /** 最近触发时间 */
+    private LocalDateTime lastTime;
+
+    /** 确认时间 */
+    private LocalDateTime ackTime;
+
+    /** 恢复时间 */
+    private LocalDateTime clearTime;
+
+    /** 恢复原因 */
+    private String clearReason;
 }

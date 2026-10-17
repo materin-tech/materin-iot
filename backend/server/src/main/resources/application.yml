@@ -2,6 +2,11 @@ server:
   port: 8080
 
 spring:
+  # 邮件通知（DFX email 渠道用；不配置则该渠道自动禁用）
+  # mail:
+  #   host: smtp.example.com
+  #   username: alert@example.com
+  #   password: change-me
   application:
     name: materin-server
   flyway:

@@ -39,6 +39,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 /** 设备告警接口：/api/v1/device/alert。 */
 @Tag(name = "设备告警")
 @RestController
@@ -52,13 +54,22 @@ public class DeviceAlertController {
     @GetMapping("/list")
     public R<PageResult<DeviceAlert>> list(@Parameter(description = "页码（从 1 开始）") @RequestParam(defaultValue = "1") long page,
                                         @Parameter(description = "每页条数") @RequestParam(defaultValue = "20") long pageSize,
-                                        @Parameter(description = "关键字（模糊匹配）") @RequestParam(required = false) String keyword,
+                                        @Parameter(description = "关键字（模糊匹配内容/设备名）") @RequestParam(required = false) String keyword,
                                         @Parameter(description = "告警级别 info/warn/error") @RequestParam(required = false) String level,
-                                        @Parameter(description = "状态：1-启用 0-禁用") @RequestParam(required = false) Integer status) {
-        return R.ok(alertService.list(page, pageSize, keyword, level, status));
+                                        @Parameter(description = "生命周期：0-活跃 1-已确认 2-已恢复") @RequestParam(required = false) Integer status,
+                                        @Parameter(description = "设备 ID") @RequestParam(required = false) Long deviceId,
+                                        @Parameter(description = "开始日期 yyyy-MM-dd") @RequestParam(required = false) String startTime,
+                                        @Parameter(description = "结束日期 yyyy-MM-dd") @RequestParam(required = false) String endTime) {
+        return R.ok(alertService.list(page, pageSize, keyword, level, status, deviceId, startTime, endTime));
     }
 
-    @Operation(summary = "处理告警（标记已处理）", description = "权限：当前未接入登录态（规划中）")
+    @Operation(summary = "告警统计（总量/生命周期/级别分布）", description = "权限：当前未接入登录态（规划中）")
+    @GetMapping("/stats")
+    public R<Map<String, Long>> stats() {
+        return R.ok(alertService.stats());
+    }
+
+    @Operation(summary = "处理告警（确认/恢复/备注）", description = "权限：当前未接入登录态（规划中）")
     @PutMapping("/{id}")
     public R<DeviceAlert> update(@Parameter(description = "资源 ID") @PathVariable Long id, @RequestBody DeviceAlert patch) {
         return R.ok(alertService.update(id, patch));

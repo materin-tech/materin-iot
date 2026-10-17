@@ -23,12 +23,14 @@
  */
 package com.materin.tech.component.dfx.access.snmp;
 
+import com.materin.tech.common.spi.DeviceCredentialLookup;
 import com.materin.tech.component.dfx.access.snmp.DfxSnmpTarget;
 import com.materin.tech.component.dfx.access.snmp.DfxSnmpTargetMapper;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 /** DFX SNMP 轮询目标 CRUD。 */
 @Service
@@ -36,6 +38,7 @@ import org.springframework.stereotype.Service;
 public class DfxSnmpTargetService {
 
     private final DfxSnmpTargetMapper mapper;
+    private final DeviceCredentialLookup credentialLookup;
 
     public Page<DfxSnmpTarget> list(long page, long pageSize, Long deviceId) {
         QueryWrapper qw = QueryWrapper.create();
@@ -61,8 +64,19 @@ public class DfxSnmpTargetService {
         if (target.getEnabled() == null) {
             target.setEnabled(1);
         }
+        if (!StringUtils.hasText(target.getDeviceName()) && target.getDeviceId() != null) {
+            target.setDeviceName(credentialLookup.findNameById(target.getDeviceId()).orElse(""));
+        }
+        if (!StringUtils.hasText(target.getDeviceName())) {
+            setFallbackName(target);
+        }
         mapper.insert(target);
         return target;
+    }
+
+    /** deviceName 缺省兜底（表列 NOT NULL，避免显式 NULL 入库报约束错误）。 */
+    private void setFallbackName(DfxSnmpTarget target) {
+        target.setDeviceName("");
     }
 
     public DfxSnmpTarget update(Long id, DfxSnmpTarget patch) {

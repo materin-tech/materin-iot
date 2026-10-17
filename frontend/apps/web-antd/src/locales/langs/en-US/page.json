@@ -23,7 +23,8 @@
     "list": "Device List",
     "debug": "Online Debugging",
     "alert": "Event Alerts",
-    "rule": "Rule Linkage"
+    "rule": "Rule Linkage",
+    "monitor": "Device Monitor"
   },
   "dfx": {
     "title": "DFX Monitoring",
@@ -46,6 +47,15 @@
     },
     "rules": {
       "title": "Alert Rules"
+    },
+    "overview": {
+      "title": "Health Overview"
+    },
+    "targets": {
+      "title": "Collection Targets"
+    },
+    "channels": {
+      "title": "Notification Channels"
     }
   },
   "ota": {

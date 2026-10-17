@@ -1,6 +1,6 @@
 # 设备 DFX 健康监控 — 接入标准规范与选型设计
 
-> 版本：v1.1（2026-10-07） · 状态：DFX 已组件化（dfx-component + 协议子模块），SNMP/MQTT/HTTP 三通道已实现并验证
+> 版本：v1.2（2026-10-17） · 状态：DFX 已组件化（dfx-component + 协议子模块），SNMP(v2c/v3)/MQTT/HTTP 三通道已实现并验证；v1.2 补齐规则引擎 v2、告警生命周期、通知渠道（webhook/邮件/站内）、健康大盘
 > DFX = Design for X（可靠性/可运维性设计），本规范定义设备侧运行健康指标（CPU/内存/磁盘/网络/在线状态等）
 > 如何以统一口径接入平台，实现监控、展示与阈值告警的闭环。
 
@@ -67,7 +67,7 @@ dfx-component/
 | v1 协议三 | **HTTP 推送**（设备 secret 鉴权） | 覆盖无法维持长连接的场景与批量网关代理上报（一次 POST 带多设备数据），实现即一个 REST 端点 | WebSocket/GRPC（重量级，无必要） |
 | 时序存储 | 复用 IoTDB（timeseries-component 抽象） | 设备属性/事件/方法已同构落库，`dfx_` 前缀列同一设备维度，聚合查询直接复用 | 独立 TSDB（引入新组件无收益） |
 | 告警 | 复用 `device_alert` 表 + 新增结构化规则表 `dfx_alert_rule` | 告警处理 UI 已存在；规则从自由文本升级为结构化条件 | 复用 device_rule（自由文本无法执行） |
-| 二期协议 | LwM2M（Eclipse Leshan 嵌入后端） | 受限 MCU 的 OMA 标准，IPSO 对象映射见 §6，等一期管道验证后再接入 | — |
+| 二期协议 | ~~LwM2M（Eclipse Leshan）~~ 已取消 | 受限设备建议经网关以 MQTT/HTTP 通道接入（见 §1.1.1） | — |
 
 ### 1.3 设备侧参考采集器选型
 
@@ -139,8 +139,9 @@ dfx-component/
 
 ### 4.3 SNMP 通道（Linux 网关/主机，平台轮询）
 
-- 平台为 SNMP manager（snmp4j），对启用 SNMP 的设备按配置间隔轮询 v2c GET。
-- 目标配置（`dfx_snmp_target` 表，或设备运维页配置）：`host, port=161, version=v2c, community, interval_seconds=60`。
+- 平台为 SNMP manager（snmp4j），对启用 SNMP 的设备按配置间隔轮询 v2c/v3 GET。
+- 目标配置（`dfx_snmp_target` 表，或采集目标页配置）：`host, port=161, version=v2c|v3, community / v3_user, v3_auth_protocol(MD5/SHA), v3_auth_passphrase, v3_priv_protocol(DES/AES128), v3_priv_passphrase, interval_seconds`。
+- v3 提供认证+加密（USM），口令仅存库（私有化部署口径，不落日志）。
 - OID 映射（UCD-SNMP-MIB / SNMPv2-MIB）：
 
 | 指标 | OID |
@@ -161,15 +162,35 @@ dfx-component/
 - 幂等：平台不去重，设备应按采集周期上报，重复数据的收敛由聚合查询天然兜底。
 - 降级：时序库不可用时指标管道降级（最新值仍进 Redis，历史缺失），**不阻断设备上行链路**。
 
-## 5. 阈值告警
+## 5. 阈值告警（v2 规则引擎 + 生命周期）
 
-- 规则表 `dfx_alert_rule`：`(device_id, metric, comparator[gt/lt], threshold, level[info/warn/error], enabled, suppress_seconds)`。
+- 规则表 `dfx_alert_rule`（v2）：`(device_id | product_id, metric, comparator[gt/gte/lt/lte/eq/ne/between], threshold, threshold2(between 上界), duration_seconds, clear_comparator/clear_threshold(恢复条件), message_template, level[info/warn/error], suppress_seconds, enabled)`。
+- 规则作用域：设备级与产品级二选一；产品级规则对全产品设备生效。
 - 评估时机：任一通道指标入库后同步评估该设备的启用规则。
-- 告警落 `device_alert`（content 如 `CPU 使用率 95.2% 超过阈值 90%（连续抑制 600s）`）。
-- **抑制窗口**：同一 (device, metric) 触发告警后 `suppress_seconds`（默认 600s）内不重复产生；
-  窗口过后仍越限则再次告警。平台重启后抑制状态清零（一期可接受）。
+- 触发语义：comparator 命中即计 1 次越限；`duration_seconds > 0` 时需连续越限达到时长才告警。
+- 内容模板：`message_template` 支持占位符 device/metric/value/threshold；未配置时用默认文案。
+- 抑制窗口：同一规则触发后 `suppress_seconds` 内不重复产生告警；窗口过后仍越限则再次告警。
+- **生命周期**：0-活跃 → 1-已确认（用户确认）→ 2-已恢复（规则配置恢复条件后，值回落到
+  clear 条件内自动恢复，含 clear_time/clear_reason；未配恢复条件的告警仅活跃/已确认两态）。
+- 同一规则重复触发：活跃期间只累加 trigger_count/刷新 last_value/last_time，不新建告警行。
 
-## 7. 开发者文档与实现落点
+## 6. 告警通知渠道（v1.2 新增）
+
+- 渠道表 `dfx_notify_channel`：`(name, type[webhook/email/inapp], config_json, min_level, enabled)`。
+- 类型与配置：
+  - **webhook**：`{url, format: dingtalk|feishu|wecom|generic}`，按 format 渲染消息体；
+  - **email**：`{to[], subjectPrefix}`（SMTP 配置走平台统一邮件配置）；
+  - **inapp**：站内通知，平台内置渠道（V17 幂等种子），写 `dfx_notification` 表；
+- 推送语义：告警产生/恢复事件按渠道 `min_level` 过滤后推送；webhook 失败重试 1 次，失败仅记日志（不阻断管道）。
+- 站内通知页内查看：通知铃铛（`GET /device/dfx/notification/unread-count` 轮询、read/read-all）。
+
+## 7. 健康大盘（v1.2 新增）
+
+- `GET /device/dfx/overview?trendDays=N`：设备总数/在线/离线、活跃告警数、近 N 天告警趋势、
+  接入组件健康（复用 /device/dfx/health）与管道统计，单接口驱动大盘页。
+- 前端页面：`views/dfx/overview.vue`（菜单 /dfx/overview，健康大盘）。
+
+## 8. 开发者文档与实现落点
 
 **设备开发者接入说明与案例：`docs/dfx-developer-guide.md`**
 （鉴权口径：一套设备凭证走三通道，零新增鉴权体系；含 MQTT/HTTP/SNMP
@@ -180,10 +201,15 @@ dfx-component/
 | 层 | 文件/位置 |
 |---|---|
 | 标准通道 | `MqttTopics.UP_DFX` + `TelemetryHandler.handle(dfx 分支)` + `MqttProtocol` 共享订阅 |
-| HTTP 通道 | `DeviceDfxController` `POST /device/dfx/report`（deviceKey+secret 鉴权） |
-| SNMP 通道 | `network-component/network-snmp`（snmp4j 轮询，`materin.dfx.snmp.enabled` 开关） |
-| 管道 | `device-component/dfx/DfxIngestService`（SPI `DfxSink`，common/spi 定义） |
+| HTTP 通道 | `dfx-access-http` `POST /device/dfx/report[/batch]`（deviceKey+secret 鉴权） |
+| SNMP 通道 | `dfx-access-snmp`（snmp4j 轮询 v2c/v3，`DfxSnmpTargetController` /device/dfx/target） |
+| 管道 | `dfx-core` `DfxIngestService`（校验→Redis→IoTDB→规则评估→健康统计） |
+| 规则引擎 v2 | `dfx-core` `DfxRuleEvaluator`（comparator/duration/clear/template/suppress） |
+| 生命周期 | `device_alert` 0-活跃/1-已确认/2-已恢复；ack 走 `PUT /device/alert/{id}` |
+| 通知 | `dfx-core` 通知分发（webhook/email/inapp）+ `dfx_notification`；渠道 CRUD `/device/dfx/notify/channel` |
+| 大盘 | `DfxOverviewController` `GET /device/dfx/overview` |
 | 存储 | `dfx_` 前缀列，`root.materin.p{pid}.d{did}.dfx_*`；Redis `materin:device:dfx:{dk}` |
-| 告警 | `dfx_alert_rule` 评估 → `device_alert`；`DfxOfflineDetector` 每 60s 状态巡检 |
-| 展示 | 前端 `views/device/monitor.vue` + 菜单 `/device/monitor` |
+| 巡检 | `DfxOfflineDetector` 每 60s 在线状态巡检（warn 级离线告警） |
+| 展示 | `views/dfx/overview.vue`、`targets.vue`、`channels.vue`、`rules.vue`、`device/monitor.vue`、`device/alert.vue` |
+| 菜单 | `/dfx/overview` `/dfx/targets` `/dfx/channels`（V18）；`/device/monitor` 隐藏路由 |
 | 参考采集器 | `tools/dfx-agent/` + `docs/dfx/snmpd.conf.sample` |

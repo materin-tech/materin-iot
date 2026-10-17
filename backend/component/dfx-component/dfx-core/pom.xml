@@ -16,6 +16,11 @@
     <description>DFX 统一接入管道：KV 指标校验/存储/阈值告警/查询/组件健康（协议无关）</description>
 
     <dependencies>
+        <!-- 邮件通知（spring.mail.host 未配置时 DfxNotifyService 优雅禁用该渠道） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.materin.tech</groupId>
             <artifactId>common</artifactId>

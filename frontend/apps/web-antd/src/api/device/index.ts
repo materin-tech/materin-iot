@@ -22,5 +22,6 @@
  * SOFTWARE.
  */
 
+export * from './alert';
 export * from './device';
 export * from './dfx';

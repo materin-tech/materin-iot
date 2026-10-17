@@ -51,8 +51,11 @@ import {
 import { getProductList } from '#/api/product/product';
 import { $t } from '#/locales';
 import { downloadJsonFile, readTextFile } from '#/utils/file-download';
+import { useRouter } from 'vue-router';
 
 defineOptions({ name: 'DeviceList' });
+
+const router = useRouter();
 
 const InputSearch = Input.Search;
 
@@ -514,6 +517,9 @@ onMounted(() => {
               </div>
 
               <div class="border-border/60 mt-4 flex items-center gap-1 border-t pt-3" @click.stop>
+                <Button type="link" size="small" @click="router.push({ path: '/device/monitor', query: { device: row.id } })">
+                  监控
+                </Button>
                 <Button type="link" size="small" @click="onEdit(row)">
                   {{ $t('common.edit') }}
                 </Button>

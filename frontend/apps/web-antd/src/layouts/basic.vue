@@ -25,7 +25,7 @@ SOFTWARE.
 <script lang="ts" setup>
 import type { NotificationItem } from '@vben/layouts';
 
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
@@ -43,59 +43,42 @@ import ForceChangePassword from '#/components/force-change-password/force-change
 import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
+import {
+  getDfxNotificationList,
+  readAllDfxNotifications,
+  readDfxNotification,
+} from '#/api';
 
-const notifications = ref<NotificationItem[]>([
-  {
-    id: 1,
-    avatar: 'https://avatar.vercel.sh/vercel.svg?text=VB',
-    date: '3小时前',
-    isRead: true,
-    message: '描述信息描述信息描述信息',
-    title: '收到了 14 份新周报',
-  },
-  {
-    id: 2,
-    avatar: 'https://avatar.vercel.sh/1',
-    date: '刚刚',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '朱偏右 回复了你',
-  },
-  {
-    id: 3,
-    avatar: 'https://avatar.vercel.sh/1',
-    date: '2024-01-01',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '曲丽丽 评论了你',
-  },
-  {
-    id: 4,
-    avatar: 'https://avatar.vercel.sh/satori',
-    date: '1天前',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '代办提醒',
-  },
-  {
-    id: 5,
-    avatar: 'https://avatar.vercel.sh/satori',
-    date: '1天前',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '跳转Workspace示例',
-    link: '/workspace',
-  },
-  {
-    id: 6,
-    avatar: 'https://avatar.vercel.sh/satori',
-    date: '1天前',
-    isRead: false,
-    message: '描述信息描述信息描述信息',
-    title: '跳转外部链接示例',
-    link: 'https://doc.vben.pro',
-  },
-]);
+const notifications = ref<NotificationItem[]>([]);
+
+let notifyTimer: ReturnType<typeof setInterval> | undefined;
+
+function fmtDate(raw?: string) {
+  return (raw ?? '').slice(0, 19).replace('T', ' ');
+}
+
+async function loadNotifications() {
+  try {
+    const res = await getDfxNotificationList({ page: 1, pageSize: 20 });
+    const list = ((res as any)?.items ?? []) as any[];
+    notifications.value = list.map((n) => ({
+      id: n.id,
+      avatar: '',
+      message: n.content,
+      title: n.title,
+      isRead: n.readFlag === 1,
+      date: fmtDate(n.createTime),
+      link: '/device/alert',
+    }));
+  } catch {
+    // 通知拉取失败不打扰主流程
+  }
+}
+
+function startNotifyPolling() {
+  loadNotifications();
+  notifyTimer = setInterval(loadNotifications, 60_000);
+}
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -133,6 +116,7 @@ function markRead(id: number | string) {
   const item = notifications.value.find((item) => item.id === id);
   if (item) {
     item.isRead = true;
+    readDfxNotification(Number(id)).catch(() => {});
   }
 }
 
@@ -140,11 +124,14 @@ function remove(id: number | string) {
   notifications.value = notifications.value.filter((item) => item.id !== id);
 }
 
-function handleMakeAll() {
+async function handleMakeAll() {
   notifications.value.forEach((item) => (item.isRead = true));
+  await readAllDfxNotifications().catch(() => {});
 }
 
-const viewAll = () => {};
+const viewAll = () => {
+  router.push('/device/alert');
+};
 
 const handleClick = (item: NotificationItem) => {
   // 如果通知项有链接，点击时跳转
@@ -209,6 +196,14 @@ watch(
     immediate: true,
   },
 );
+
+startNotifyPolling();
+
+onUnmounted(() => {
+  if (notifyTimer) {
+    clearInterval(notifyTimer);
+  }
+});
 </script>
 
 <template>

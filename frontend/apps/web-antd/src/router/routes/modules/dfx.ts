@@ -65,6 +65,33 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('#/views/dfx/rules.vue'),
       },
+      {
+        path: 'overview',
+        name: 'DfxOverview',
+        meta: {
+          icon: 'lucide:gauge',
+          title: $t('page.dfx.overview.title'),
+        },
+        component: () => import('#/views/dfx/overview.vue'),
+      },
+      {
+        path: 'targets',
+        name: 'DfxTargets',
+        meta: {
+          icon: 'lucide:radio-tower',
+          title: $t('page.dfx.targets.title'),
+        },
+        component: () => import('#/views/dfx/targets.vue'),
+      },
+      {
+        path: 'channels',
+        name: 'DfxChannels',
+        meta: {
+          icon: 'lucide:bell-ring',
+          title: $t('page.dfx.channels.title'),
+        },
+        component: () => import('#/views/dfx/channels.vue'),
+      },
     ],
   },
 ];

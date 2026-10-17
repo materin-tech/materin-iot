@@ -28,11 +28,9 @@ import com.materin.tech.common.core.R;
 import com.materin.tech.component.dfx.core.DfxIngestService;
 import com.materin.tech.component.dfx.core.entity.DfxAlertRule;
 import com.materin.tech.component.dfx.core.health.DfxAccessHealth;
-import com.materin.tech.component.dfx.core.health.DfxAccessHealth;
 import com.materin.tech.component.dfx.core.health.DfxAccessHealthProvider;
 import com.materin.tech.component.dfx.core.health.DfxHealthRegistry;
 import com.materin.tech.component.dfx.core.service.DfxAlertRuleService;
-import com.materin.tech.component.dfx.core.DfxIngestService;
 import com.materin.tech.component.dfx.core.DfxRecord;
 import com.materin.tech.component.timeseries.TimeSeriesQuery;
 import com.mybatisflex.core.paginate.Page;
@@ -92,8 +90,12 @@ public class DfxQueryController {
     public R<PageResult<DfxAlertRule>> ruleList(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long pageSize,
-            @RequestParam(required = false) Long deviceId) {
-        Page<DfxAlertRule> p = ruleService.list(page, pageSize, deviceId);
+            @RequestParam(required = false) Long deviceId,
+            @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) Integer enabled) {
+        Page<DfxAlertRule> p = ruleService.list(page, pageSize, deviceId, productId, keyword, level, enabled);
         return R.ok(new PageResult<>(p.getRecords(), p.getTotalRow()));
     }
 
