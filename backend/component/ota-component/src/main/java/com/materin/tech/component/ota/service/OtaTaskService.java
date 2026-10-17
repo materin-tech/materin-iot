@@ -85,6 +85,7 @@ public class OtaTaskService {
     private final OtaPackageMapper packageMapper;
     private final OtaPackageService packageService;
     private final DeviceMapper deviceMapper;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final ObjectProvider<DeviceCredentialLookup> credentialLookup;
     private final ObjectProvider<CommandPublisher> publisher;
     private final OtaCandidateMapper candidateMapper;
@@ -328,20 +329,49 @@ public class OtaTaskService {
             td.setMessage(message);
         }
         taskDeviceMapper.update(td);
-        if (status == ST_SUCCESS) {
-            OtaPackage pkg = packageMapper.selectOneById(td.getPackageId());
-            if (pkg != null) {
-                Device d = deviceMapper.selectOneByQuery(
-                        QueryWrapper.create().eq("id", td.getDeviceId()));
-                if (d != null) {
+        // 设备自报信息（info KV，如 MAC/SN/芯片）随升级上报合并落库；成功时同步固件版本
+        Object infoObj = body.get("info");
+        boolean hasInfo = infoObj instanceof Map<?, ?> infoMap && !infoMap.isEmpty();
+        if (status == ST_SUCCESS || hasInfo) {
+            OtaPackage pkg = status == ST_SUCCESS
+                    ? packageMapper.selectOneById(td.getPackageId()) : null;
+            Device d = deviceMapper.selectOneByQuery(
+                    QueryWrapper.create().eq("id", td.getDeviceId()));
+            if (d != null) {
+                if (status == ST_SUCCESS && pkg != null) {
                     d.setFirmware(pkg.getVersion());
-                    deviceMapper.update(d);
                 }
+                if (hasInfo) {
+                    d.setInfoJson(mergeInfo(d.getInfoJson(), (Map<?, ?>) infoObj));
+                }
+                deviceMapper.update(d);
             }
-            log.info("OTA 升级成功: device={}, version={}", deviceKey,
-                    pkg == null ? "?" : pkg.getVersion());
+            if (status == ST_SUCCESS) {
+                log.info("OTA 升级成功: device={}, version={}", deviceKey,
+                        pkg == null ? "?" : pkg.getVersion());
+            }
         }
         converge(taskId);
+    }
+
+    /** 端侧自报信息合并：旧值打底，新值覆盖，序列化失败不阻断进度链路。 */
+    private String mergeInfo(String existingJson, Map<?, ?> incoming) {
+        java.util.Map<String, Object> merged = new java.util.LinkedHashMap<>();
+        if (existingJson != null && !existingJson.isBlank()) {
+            try {
+                merged.putAll(objectMapper.readValue(existingJson,
+                        new com.fasterxml.jackson.core.type.TypeReference<>() {}));
+            } catch (Exception e) {
+                log.warn("设备自报信息旧值解析失败（整体覆盖）: {}", e.getMessage());
+            }
+        }
+        incoming.forEach((k, v) -> merged.put(String.valueOf(k), v));
+        try {
+            return objectMapper.writeValueAsString(merged);
+        } catch (Exception e) {
+            log.warn("设备自报信息序列化失败（丢弃本次）: {}", e.getMessage());
+            return existingJson;
+        }
     }
 
     /** 全部明细到达终态（成功/失败/已取消）且计划进行中 → 已完成。 */

@@ -92,6 +92,15 @@ public class DeviceService {
         return new PageResult<>(result.getRecords(), result.getTotalRow());
     }
 
+    /** 设备详情（含端侧自报信息 infoJson）。 */
+    public Device requireById(Long id) {
+        Device d = deviceMapper.selectOneById(id);
+        if (d == null) {
+            throw BizException.badRequest("设备不存在: " + id);
+        }
+        return d;
+    }
+
     public Device create(Map<String, Object> payload) {
         String name = (String) payload.get("name");
         String deviceKey = (String) payload.get("deviceKey");

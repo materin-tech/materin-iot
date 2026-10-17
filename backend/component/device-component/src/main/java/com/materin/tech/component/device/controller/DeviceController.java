@@ -89,6 +89,12 @@ public class DeviceController {
         return R.ok(commandService.send(id, command));
     }
 
+    @Operation(summary = "设备详情（含端侧自报信息 MAC/SN/固件等）")
+    @GetMapping("/{id}")
+    public R<Device> detail(@Parameter(description = "资源 ID") @PathVariable Long id) {
+        return R.ok(deviceService.requireById(id));
+    }
+
     @Operation(summary = "更新/删除设备", description = "权限：当前未接入登录态（规划中）；命令下发依赖设备在线状态")
     @PutMapping("/{id}")
     public R<Device> update(@Parameter(description = "资源 ID") @PathVariable Long id, @RequestBody Map<String, Object> payload) {

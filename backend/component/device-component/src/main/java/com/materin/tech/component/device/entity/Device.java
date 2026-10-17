@@ -60,6 +60,9 @@ public class Device extends BaseEntity {
     /** 固件版本 */
     private String firmware;
 
+    /** 端侧设备自报信息 JSON（MAC/SN/芯片等 KV，升级上报等链路写入，最新值合并覆盖） */
+    private String infoJson;
+
     /** 最近在线时间 */
     private String lastOnline;
 

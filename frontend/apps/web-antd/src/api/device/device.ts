@@ -42,6 +42,8 @@ export namespace DeviceApi {
     productName: string;
     status: DeviceStatus;
     firmware: string;
+    /** 端侧设备自报信息 JSON（MAC/SN/芯片等 KV） */
+    infoJson?: null | string;
     lastOnline: string;
     remark?: string;
     createTime: string;
@@ -56,6 +58,11 @@ async function getDeviceList(params: Recordable<any>) {
   );
 }
 
+/** 获取设备详情（含端侧自报信息 infoJson） */
+async function getDeviceDetail(id: number | string) {
+  return requestClient.get<DeviceApi.Device>(`/device/${id}`);
+}
+
 async function createDevice(data: Omit<DeviceApi.Device, 'id'>) {
   return requestClient.post('/device', data);
 }
@@ -68,7 +75,14 @@ async function deleteDevice(id: string) {
   return requestClient.delete(`/device/${id}`);
 }
 
-export { createDevice, deleteDevice, getDeviceList, importDevices, updateDevice };
+export {
+  createDevice,
+  deleteDevice,
+  getDeviceDetail,
+  getDeviceList,
+  importDevices,
+  updateDevice,
+};
 
 /** 批量导入设备 */
 async function importDevices(data: { items: any[] }) {
