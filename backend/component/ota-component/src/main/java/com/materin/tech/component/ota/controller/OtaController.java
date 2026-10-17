@@ -23,6 +23,7 @@
  */
 package com.materin.tech.component.ota.controller;
 
+import com.materin.tech.common.core.PageResult;
 import com.materin.tech.common.core.R;
 import com.materin.tech.component.ota.entity.OtaPackage;
 import com.materin.tech.component.ota.entity.OtaTask;
@@ -51,11 +52,12 @@ public class OtaController {
 
     @Operation(summary = "固件包列表")
     @GetMapping("/package/list")
-    public R<Page<OtaPackage>> packages(@RequestParam(defaultValue = "1") long page,
-                                        @RequestParam(defaultValue = "20") long pageSize,
-                                        @RequestParam(required = false) Long productId,
-                                        @RequestParam(required = false) String name) {
-        return R.ok(packageService.list(page, pageSize, productId, name));
+    public R<PageResult<OtaPackage>> packages(@RequestParam(defaultValue = "1") long page,
+                                              @RequestParam(defaultValue = "20") long pageSize,
+                                              @RequestParam(required = false) Long productId,
+                                              @RequestParam(required = false) String name) {
+        Page<OtaPackage> p = packageService.list(page, pageSize, productId, name);
+        return R.ok(new PageResult<>(p.getRecords(), p.getTotalRow()));
     }
 
     @Operation(summary = "上传固件包（multipart，文件经存储中间件落对象存储）")
@@ -97,9 +99,10 @@ public class OtaController {
 
     @Operation(summary = "升级任务列表")
     @GetMapping("/task/list")
-    public R<Page<OtaTask>> tasks(@RequestParam(defaultValue = "1") long page,
-                                  @RequestParam(defaultValue = "20") long pageSize) {
-        return R.ok(taskService.list(page, pageSize));
+    public R<PageResult<OtaTask>> tasks(@RequestParam(defaultValue = "1") long page,
+                                        @RequestParam(defaultValue = "20") long pageSize) {
+        Page<OtaTask> p = taskService.list(page, pageSize);
+        return R.ok(new PageResult<>(p.getRecords(), p.getTotalRow()));
     }
 
     @Operation(summary = "创建升级计划（只登记口径，不展开设备；scope 由 productId 是否传决定）")
@@ -163,11 +166,12 @@ public class OtaController {
 
     @Operation(summary = "任务设备明细（分页，含状态/进度）")
     @GetMapping("/task/{id}/devices")
-    public R<Page<OtaTaskDevice>> taskDevices(@PathVariable Long id,
-                                              @RequestParam(defaultValue = "1") long page,
-                                              @RequestParam(defaultValue = "20") long pageSize,
-                                              @RequestParam(required = false) Integer status) {
-        return R.ok(taskService.taskDevices(page, pageSize, id, status));
+    public R<PageResult<OtaTaskDevice>> taskDevices(@PathVariable Long id,
+                                                    @RequestParam(defaultValue = "1") long page,
+                                                    @RequestParam(defaultValue = "20") long pageSize,
+                                                    @RequestParam(required = false) Integer status) {
+        Page<OtaTaskDevice> p = taskService.taskDevices(page, pageSize, id, status);
+        return R.ok(new PageResult<>(p.getRecords(), p.getTotalRow()));
     }
 
     @Operation(summary = "失败重推")

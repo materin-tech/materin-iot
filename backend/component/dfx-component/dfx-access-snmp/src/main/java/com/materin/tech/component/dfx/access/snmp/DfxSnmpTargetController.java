@@ -23,6 +23,7 @@
  */
 package com.materin.tech.component.dfx.access.snmp;
 
+import com.materin.tech.common.core.PageResult;
 import com.materin.tech.common.core.R;
 import com.mybatisflex.core.paginate.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,10 +42,11 @@ public class DfxSnmpTargetController {
 
     @Operation(summary = "SNMP 轮询目标列表")
     @GetMapping("/list")
-    public R<Page<DfxSnmpTarget>> list(@RequestParam(defaultValue = "1") long page,
-                                       @RequestParam(defaultValue = "20") long pageSize,
-                                       @RequestParam(required = false) Long deviceId) {
-        return R.ok(targetService.list(page, pageSize, deviceId));
+    public R<PageResult<DfxSnmpTarget>> list(@RequestParam(defaultValue = "1") long page,
+                                             @RequestParam(defaultValue = "20") long pageSize,
+                                             @RequestParam(required = false) Long deviceId) {
+        Page<DfxSnmpTarget> p = targetService.list(page, pageSize, deviceId);
+        return R.ok(new PageResult<>(p.getRecords(), p.getTotalRow()));
     }
 
     @Operation(summary = "创建 SNMP 轮询目标")

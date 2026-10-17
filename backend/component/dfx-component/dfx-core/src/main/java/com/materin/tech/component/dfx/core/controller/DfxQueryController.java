@@ -23,6 +23,7 @@
  */
 package com.materin.tech.component.dfx.core.controller;
 
+import com.materin.tech.common.core.PageResult;
 import com.materin.tech.common.core.R;
 import com.materin.tech.component.dfx.core.DfxIngestService;
 import com.materin.tech.component.dfx.core.entity.DfxAlertRule;
@@ -88,11 +89,12 @@ public class DfxQueryController {
 
     @Operation(summary = "DFX 阈值规则列表")
     @GetMapping("/rule/list")
-    public R<Page<DfxAlertRule>> ruleList(
+    public R<PageResult<DfxAlertRule>> ruleList(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "20") long pageSize,
             @RequestParam(required = false) Long deviceId) {
-        return R.ok(ruleService.list(page, pageSize, deviceId));
+        Page<DfxAlertRule> p = ruleService.list(page, pageSize, deviceId);
+        return R.ok(new PageResult<>(p.getRecords(), p.getTotalRow()));
     }
 
     @Operation(summary = "创建阈值规则")
